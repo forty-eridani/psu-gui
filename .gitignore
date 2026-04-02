@@ -1,10 +1,10 @@
-./psu-backend/deps/
-./psu-backend/build/
-./psu-backend/.cache/
-./psu-backend/compile_commands.json
+psu-backend/deps/
+psu-backend/build/
+psu-backend/.cache/
+psu-backend/compile_commands.json
 
-./gui/bin/
-./gui/include/
-./gui/lib/
-./gui/lib64/
-./gui/pyvenv.cfg
+gui/bin/
+gui/include/
+gui/lib/
+gui/lib64
+gui/pyvenv.cfg
