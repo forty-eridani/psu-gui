@@ -23,7 +23,7 @@ static void printBufHex(const char* prefix, const uint8_t* buf, int len) {
 		printf("'\n");
 }
 
-void telnetNegotiateResponse(uint8_t* res, int len) {
+static void telnetNegotiateResponse(uint8_t* res, int len) {
 	for (int i = 0; i < len; i++) {
 		// Hope that each telnet command will start with 0xFF
 		signal_buf[i++] = 0xFF;
@@ -56,4 +56,8 @@ void negotiate(int sockfd) {
 	printBufHex("Sending Buffer (in hex)", signal_buf, len);
 
 	send(sockfd, signal_buf, len, 0);
+}
+
+void respondWithState(int sockfd) { 
+
 }
