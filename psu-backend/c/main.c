@@ -89,7 +89,8 @@ int main() {
 
 		printf("Connected to %s.\n", display_addr_buf);
 
-		int rec_code = recv(their_fd, rec_buf, REC_BUF_SIZE, 0);
+		int rec_length = recv(their_fd, rec_buf, REC_BUF_SIZE, 0);
+		rec_buf[rec_length] = '\0';
 
 		printf("%s\n", rec_buf);
 	}
