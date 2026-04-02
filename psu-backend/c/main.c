@@ -96,18 +96,19 @@ int main() {
 	while (true) {
 		int their_fd = accept(local_fd, (struct sockaddr*)&other_addr, &other_addr_size);
 
-		negotiate(their_fd);
-
-		char rec_buf[REC_BUF_SIZE];
-		char send_buf[SEND_BUF_SIZE];
-
 		getAddrString((struct sockaddr*)&other_addr, display_addr_buf);
 
 		printf("Connected to %s.\n", display_addr_buf);
 
-		int rec_length = recv(their_fd, rec_buf, REC_BUF_SIZE, 0);
-		printf("Recieved From Client (string): '%s'\n", rec_buf);
-		printBufHex("Recieved From Client (hex)", rec_buf, rec_length);
+		respondWithState(their_fd);
+
+		// char rec_buf[REC_BUF_SIZE];
+		// char send_buf[SEND_BUF_SIZE];
+		//
+		//
+		// int rec_length = recv(their_fd, rec_buf, REC_BUF_SIZE, 0);
+		// printf("Recieved From Client (string): '%s'\n", rec_buf);
+		// printBufHex("Recieved From Client (hex)", rec_buf, rec_length);
 
 	}
 }
