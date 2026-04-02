@@ -9,11 +9,24 @@
 #include <netinet/in.h>
 #include <stdlib.h>
 
+#include "comms.h"
+
 #define PORT "4000"
 #define BACKLOG 10
 #define REC_BUF_SIZE 2048
+#define SEND_BUF_SIZE 2048
 
-void getAddrString(struct sockaddr* addr, char* buf) {
+static void printBufHex(const char* prefix, const char* buf, int len) {
+		printf("%s: '", prefix);
+
+		for (int i = 0; i < len; i++) {
+			printf("%X ", (uint8_t)buf[i]);
+		}
+
+		printf("'\n");
+}
+
+static void getAddrString(struct sockaddr* addr, char* buf) {
 	if (addr->sa_family == AF_INET) {
 		struct sockaddr_in* addr_in = (struct sockaddr_in*)addr;
 		inet_ntop(addr_in->sin_family, &(addr_in->sin_addr), buf, INET_ADDRSTRLEN);
@@ -83,15 +96,18 @@ int main() {
 	while (true) {
 		int their_fd = accept(local_fd, (struct sockaddr*)&other_addr, &other_addr_size);
 
+		negotiate(their_fd);
+
 		char rec_buf[REC_BUF_SIZE];
+		char send_buf[SEND_BUF_SIZE];
 
 		getAddrString((struct sockaddr*)&other_addr, display_addr_buf);
 
 		printf("Connected to %s.\n", display_addr_buf);
 
 		int rec_length = recv(their_fd, rec_buf, REC_BUF_SIZE, 0);
-		rec_buf[rec_length] = '\0';
+		printf("Recieved From Client (string): '%s'\n", rec_buf);
+		printBufHex("Recieved From Client (hex)", rec_buf, rec_length);
 
-		printf("%s\n", rec_buf);
 	}
 }
