@@ -8,5 +8,5 @@ gui/include/
 gui/lib/
 gui/lib64
 gui/pyvenv.cfg
-gui/__pycache__/
+gui/src/__pycache__/
 gui/Scripts/

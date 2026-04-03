@@ -4,7 +4,7 @@ import threading
 
 # Stores tuples where first is the string and second is whether it takes an arg
 # The "_REQ" indicates that the command ends with a question mark
-class Command(Enum):
+class Command:
     # Initialization Control Commands
     ADR = ("ADR ", True)
     CLS = ("CLS", False)
@@ -70,6 +70,7 @@ class CommandQueueClass:
         self.ser = serial.serial_for_url(f"{address}:{port}")
         self.command_queue = []
         self.mutex = threading.Lock()
+        print(f"Opened socket at {address}:{port}")
 
     def run_command(self, command: tuple[str, bool], arg: str) -> str:
         real_command = command[0]
@@ -80,7 +81,7 @@ class CommandQueueClass:
 
         # Just in case requests come from multiple threads
         with self.mutex:
-            print(f"Sending '{real_command}\r'...")
+            print(f"Sending '{real_command}'...")
             self.ser.write(f"{real_command}\r".encode())
             result = self.ser.readline().decode()
 
@@ -97,7 +98,8 @@ class CommandQueueClass:
         return result
 
     def __del__(self):
+        print("Closing socket")
         self.ser.close()
 
 # Singleton Pattern 
-CommandQueue = CommandQueueClass("127.0.0.1", "4000")
+CommandQueue = CommandQueueClass("socket://127.0.0.1", "4000")
