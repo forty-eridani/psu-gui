@@ -70,6 +70,10 @@ class CommandQueueClass:
         self.ser = serial.serial_for_url(f"{address}:{port}")
         self.command_queue = []
         self.mutex = threading.Lock()
+
+        # Can be set as a callback whenever a command is run. Must take two 
+        # strings as arguments: one for the command and one for the response
+        self.on_command = None
         print(f"Opened socket at {address}:{port}")
 
     def run_command(self, command: tuple[str, bool], arg: str) -> str:
@@ -85,7 +89,15 @@ class CommandQueueClass:
             self.ser.write(f"{real_command}\r".encode())
             result = self.ser.readline().decode()
 
+            if self.on_command != None:
+                self.on_command(real_command, result)
+
         return result 
+    
+    # Sets the function called when commands are run. Function must take 
+    # two strings as arguments: one for the command and one for the response
+    def set_on_command(self, on_command) -> None:
+        self.on_command = on_command
 
     # Runs the raw text param as a command. Must be terminated with carriage return
     def run_raw_command(self, command: str) -> str:
