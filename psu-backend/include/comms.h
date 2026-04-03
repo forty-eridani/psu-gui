@@ -22,11 +22,34 @@
 #define DO 0xFD
 #define DONT 0xFE
 #define IAC 0xFF // Escape byte for indicating a command
+				 
+
+// Errors for the device itself
+#define E01 "[Device Error] E01" // Voltage too high for either rating or OVP
+#define E02 "[Device Error] E02" // Voltage below UVL
+#define E04 "[Device Error] E04" // OVP programmed too low
+#define E06 "[Device Error] E06" // UVL programmed above programmed output voltage
+#define E07 "[Deivce Error] E07" // Programmed on during a fault shutdown
+
+#define C01 "[Device Error] C01" // Illegal command
+#define C02 "[Device Error] C02" // Missing parameter
+#define C03 "[Device Error] C03" // Illegal parameter
+#define C04 "[Device Error] C04" // Checksum error
+#define C05 "[Device Error] C05" // Setting out of range
+
+// Pretty self-explanitory
+#define OK "OK"
+
+#define INOP "INOP" // Inoperational commands that I am either too lazy to program 
+					// or are impossible to emulate
 
 // Performs the initial negotiation for RFC2217
 void negotiate(int sockfd);
 
 // Responds to all of the TELNET requests as a pretend serial device
 void respondWithState(int sockfd);
+
+// Doesn't bother with telenet protocols, assumes raw socket
+void rawSocketComms(int sockfd);
 
 #endif

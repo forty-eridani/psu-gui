@@ -100,7 +100,7 @@ int main() {
 
 		printf("Connected to %s.\n", display_addr_buf);
 
-		respondWithState(their_fd);
+		rawSocketComms(their_fd);
 
 		// char rec_buf[REC_BUF_SIZE];
 		// char send_buf[SEND_BUF_SIZE];
