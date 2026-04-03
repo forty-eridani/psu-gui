@@ -140,11 +140,13 @@ static bool numericallyCorrect(const char* s) {
 	for (int i = offset; i < strlen(s) - 1; i++) {
 		if (s[i] >= '0' || s[i] <= '9')
 			continue;
-
-		if (s[i] == '.' && decimal == false)
+		else if (s[i] == '.' && decimal == false) {
+			decimal = true;
 			continue;
-
-		return false;
+		} else {
+			printf("Failed when s[i] = '%c'.\n", s[i]);
+			return false;
+		}
 	}
 
 	return true;
@@ -188,12 +190,9 @@ static int boolean(const char* s) {
 	return -1;
 }
 
-static double getOVP() {
-	
-}
-
-void rawSocketComms(int sockfd) {	
+int rawSocketComms(int sockfd) {	
 	char rec_buf[BUF_LEN];
+	memset(signal_buf, 0, BUF_LEN);
 
 	printf("Waiting for request...\n");
 	
@@ -201,6 +200,9 @@ void rawSocketComms(int sockfd) {
 	rec_buf[len] = '\0';
 
 	double num_buf[BUF_LEN] = {'\0'};
+
+	if (len == 0)
+		return -1;
 
 	printf("Recieved Request! Command recieved: %s\n", rec_buf);
 
@@ -267,7 +269,7 @@ void rawSocketComms(int sockfd) {
 		} else {
 			double pv = atof(rec_buf + 3);
 
-			if (!numericallyCorrect(rec_buf + 3) == 0) {
+			if (!numericallyCorrect(rec_buf + 3)) {
 				strcpy(signal_buf, C03);
 			} else if (pv > 600.0 || pv < 0) { // Doesn't check for violations of OVP since 
 											   // that is impossible in our little emulation 
@@ -285,15 +287,15 @@ void rawSocketComms(int sockfd) {
 		// Let's just always assume that our true output always equals our target output
 		sprintf(signal_buf, "%fV", device.output_voltage);	
 	} 
-	else if (strcmp(rec_buf, "PC ") == 0) {
+	else if (strncmp(rec_buf, "PC ", 3) == 0) {
 		if (!properlyTerminated(rec_buf)) {
 			strcpy(signal_buf, UNTERMINATED_ERR);
 		} else {
 			double pc = atof(rec_buf + 3);
 
-			if (!numericallyCorrect(rec_buf + 3) == 0) {
+			if (!numericallyCorrect(rec_buf + 3)) {
 				strcpy(signal_buf, C03);
-			} else if (pc > 2.6 || pc < 0.0 || pc > device.ovp) {
+			} else if (pc > 2.6 || pc < 0.0) {
 				strcpy(signal_buf, C05);
 			} else {
 				device.current = pc;
@@ -512,4 +514,6 @@ void rawSocketComms(int sockfd) {
 	send(sockfd, signal_buf, strlen(signal_buf) + 1, 0);
 
 	printf("Response Sent!\n");
+
+	return 0;
 }

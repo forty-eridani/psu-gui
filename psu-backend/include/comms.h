@@ -50,6 +50,6 @@ void negotiate(int sockfd);
 void respondWithState(int sockfd);
 
 // Doesn't bother with telenet protocols, assumes raw socket
-void rawSocketComms(int sockfd);
+int rawSocketComms(int sockfd);
 
 #endif
