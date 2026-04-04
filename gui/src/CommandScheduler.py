@@ -3,18 +3,19 @@ from operator import attrgetter
 import re
 
 class CommandedOutput:
-    def __init__(self, seconds: float, command: tuple[str, int], arg: str | None, name: str, is_step: bool):
+    def __init__(self, seconds: float, command: tuple[str, int], arg: str | None, name: str, is_step: bool, step_to: bool):
         self.seconds = seconds
         self.command = command
         self.arg = arg
         self.name = name
         self.is_step = is_step
+        self.step_to = step_to # Whether this command should be interpolated to
 
     def get_time(self) -> float:
         return self.seconds
     
     def has_arg(self) -> bool:
-        return self.arg == None
+        return self.arg != None
     
     def __str__(self) -> str:
         return '{' + f"seconds: {self.seconds}, command: {self.command}, arg: {self.arg}, name: {self.name}, is_step: {self.is_step}" + '}'
@@ -26,54 +27,36 @@ class CommandSchedulerClass:
 
     # Step rate in steps per second
     def add_command(self, seconds: float, command: tuple[str, int], arg: str | None, should_step: bool, name: str) -> None:
-        new_command = CommandedOutput(seconds, command, arg, name, False)
+        new_command = CommandedOutput(seconds, command, arg, name, False, should_step)
 
         if self.find_element(name) != -1:
             print(f"[Error] Command {name} already exists")
             return
-        
-        self.push_command(new_command)
-
         if (command[1] < 2 and should_step == True):
-            print(f"[Error] Unable to step '{command}'.")
+            print(f"[Warning] Unable to step '{command}'.")
             return
         elif (command[1] > 0 and arg == None):
             print(f"[Error] '{command[0]}' requires an argument.")
             return
-        elif (len(self.commands) == 1 and should_step == True):
-            print(f"[Warning] Cannot step when there is only one element in the commands")
+
+        self.push_command(new_command)
+
+        if (len(self.commands) == 1 and should_step == True):
+            print(f"[Warning] Cannot step when there is only one command of that type")
             return
+        
+        index = self.find_element(name)
 
-        if (should_step):
-            index = self.find_element(name)
+        last_index, next_index = self.get_surrounding_commands(name, False)
 
-            # Finding next index of the same command type
-            next_index = None
-            last_index = None
-            
-            i = index + 1
-            while i < len(self.commands) and self.commands[i].command != self.commands[index].command:
-                i += 1
-            
-            if i < len(self.commands):
-                next_index = i
+        if next_index != -1 and self.commands[next_index].step_to:
+            self.interpolate(index, next_index, self.step_rate, f"INTRP_{name}")
 
-            # Finding the last index of the same command type
-            i = index - 1
-            while i >= 0 and self.commands[i].command != self.commands[index].command:
-                i -= 1
+        if last_index != -1 and should_step:
+            self.interpolate(last_index, index, self.step_rate, f"INTRP_{name}")
 
-            if i > -1:
-                last_index = i
-
-            if next_index != None:
-                self.interpolate(index, next_index, self.step_rate, f"INTRP_{name}")
-
-            if last_index != None:
-                self.interpolate(last_index, index, self.step_rate, f"INTRP_{name}")
-
-            if last_index == None and next_index == None:
-                print("[Warning] Cannot step when there is only one command of the type")
+        if last_index == -1 and should_step:
+            print("[Warning] Connect step when this is the first command of the type")
 
     def remove_command(self, name: str) -> None:
         pass
@@ -92,15 +75,17 @@ class CommandSchedulerClass:
 
         for commanded_output_str in commanded_outputs:
             # Just placeholder values
-            read_command = CommandedOutput(0, ("", 0), None, "", False)
+            read_command = CommandedOutput(0, ("", 0), None, "", False, False)
 
             for name, attr in zip(attr_names, commanded_output_str.split(",")):
                 
                 # If statement for all non-str types
-                if name == "is_step":
+                if name == "is_step" or name == "step_to":
                     setattr(read_command, name, True if attr == "True" else False)
                 elif name == "command":
                     setattr(read_command, name, CommandDictionary[attr])
+                elif name == "seconds":
+                    setattr(read_command, name, float(attr))
                 else:
                     setattr(read_command, name, attr)
 
@@ -119,8 +104,6 @@ class CommandSchedulerClass:
 
         file_txt += ",".join(attrs) + '\n'
 
-        # else 
-
         for command in self.commands:
 
             # A very cursed example of list comprehension. This simply pushes an attribute if it doesn't start with a '(', and if it does,
@@ -135,11 +118,36 @@ class CommandSchedulerClass:
         self.step_rate = step_rate
 
     def __str__(self):
-        return f"[ {[str(command) for command in self.commands]} ]"
+        return f"{[str(command) for command in self.commands]}"
 
     def push_command(self, command: CommandedOutput) -> None:
         self.commands.append(command)
         self.commands = sorted(self.commands, key=attrgetter('seconds'))
+
+    def get_surrounding_commands(self, name: str, include_steps: bool) -> tuple[int, int]:
+        next_index = -1
+        last_index = -1
+
+        index = self.find_element(name)
+        
+        i = index + 1
+        while i < len(self.commands) and (self.commands[i].command != self.commands[index].command or (self.commands[i].is_step if not include_steps else True)):
+            i += 1
+        
+        if i < len(self.commands):
+            next_index = i
+
+        # Finding the last index of the same command type. `should_step` only indicates that we should interpolate
+        # to this command, not from this command to the next. 
+        
+        i = index - 1
+        while i >= 0 and (self.commands[i].command != self.commands[index].command or (self.commands[i].is_step if not include_steps else True)):
+            i -= 1
+
+        if i > -1:
+            last_index = i
+
+        return (last_index, next_index)
 
     # The interpolation routine :) Assumes indices refer to same command type
     def interpolate(self, index1: int, index2: int, step_rate: float, name: str) -> None:
@@ -150,6 +158,19 @@ class CommandSchedulerClass:
         assert(self.commands[index1].arg != None)
         assert(self.commands[index2].arg != None)
         assert(self.commands[index1].command[1] > 1)
+        assert(self.commands[index1].seconds != self.commands[index2].seconds)
+
+        # Assuring that we aren't trying to interpolate between points that have intermediaries between 'em
+        assert(False not in [command.is_step and command.command == self.commands[index1].command for command in self.commands[index1 + 1:index2]])
+
+        # We want to get rid of any step commands that already existed between the new indices
+        pop_count = 0
+        for i in range(index2 - 1, index1, -1):
+            if self.commands[i].command == self.commands[index1].command:
+                self.commands.pop(i)
+                pop_count += 1
+
+        index2 -= pop_count
 
         step_count: int = int((self.commands[index2].seconds - self.commands[index1].seconds) * step_rate)
         step_interval: float = (self.commands[index2].seconds - self.commands[index1].seconds) / step_count
@@ -171,7 +192,7 @@ class CommandSchedulerClass:
             if self.commands[index1].command[1] == 2:
                 new_arg = int(new_arg)
 
-            new_command = CommandedOutput(new_time, self.commands[index1].command, str(new_arg), name, True)
+            new_command = CommandedOutput(new_time, self.commands[index1].command, str(new_arg), name, True, False)
             self.push_command(new_command)
 
 
