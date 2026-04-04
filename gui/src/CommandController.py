@@ -69,6 +69,68 @@ class Command:
     SENA_REQ = ("SENA?", 0)
     SEVE_REQ = ("SEVE", 0)
 
+# This array was made with some creative uses of ctrl-f, so this should probably be tested
+CommandDictionary = {
+    "ADR": ("ADR ", 1),
+    "CLS": ("CLS", 0),
+    "RST": ("RST", 0),
+    "RMT": ("RMT?", 0),
+    "MDAV?": ("MDAV?", 0),
+    "\\": ("\\", 0),
+
+    # ID control commands
+    "IDN?": ("IDN?", 0),
+    "REV?": ("REV?", 0),
+    "SN?": ("SN?", 0),
+    "DATE?": ("DATE?", 0),
+
+    # Output control commands
+    "PV": ("PV ", 3),
+    "PV?": ("PV?", 0),
+    "MV?": ("MV?", 0),
+    "PC": ("PC ", 3),
+    "PC?": ("PC?", 0),
+    "MC?": ("MC?", 0),
+    "DVC?": ("DVC?", 0),
+    "OUT": ("OUT ", 1),
+    "OUT?": ("OUT?", 0),
+    "FLD": ("FLD ", 1),
+    "FLD?": ("FLD?", 0),
+    "FBD": ("FBD ", 2),
+    "FBD?": ("FBD?", 0),
+    "FBDRST": ("FBDRST", 0),
+    "OVP": ("OVP ", 3),
+    "OVP?": ("OVP?", 0),
+    "OVM": ("OVM?", 0),
+    "UVL": ("UVL ", 3),
+    "UVL?": ("UVL?", 0),
+    "AST": ("AST ", 1),
+    "AST?": ("AST?", 0),
+    "SAV": ("SAV", 0),
+    "RCL": ("RCL", 0),
+    "MODE?": ("MODE?", 0),
+    "MS": ("MS?", 0),
+
+    # Global Output Commands
+    "GPRST": ("GRST", 0),
+    "GPV": ("GPV ", 3),
+    "GPC": ("GPC ", 3),
+    "GOUT": ("GOUT", 0),
+    "GSAV": ("GSAV", 0),
+    "GRCL": ("GRCL", 0),
+
+    # Status Control Commands
+    "STT?": ("STT?", 0),
+    "FLT?": ("FLT?", 0),
+    "FENA": ("FENA", 0),
+    "FENA?": ("FENA?", 0),
+    "FEVE?": ("FEVE?", 0),
+    "STAT?": ("STAT?", 0),
+    "SENA": ("SENA", 0),
+    "SENA?": ("SENA?", 0),
+    "SEVE?": ("SEVE", 0),
+}
+
 class CommandControllerClass:
     def __init__(self, address, port):
         self.ser = serial.serial_for_url(f"{address}:{port}")

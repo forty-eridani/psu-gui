@@ -60,8 +60,7 @@ app = QApplication()
 window = MainWindow()
 window.show()
 
-CommandScheduler.add_command(1, Command.PV, "1.0", False, "PV_1")
-CommandScheduler.add_command(5, Command.PV, "2.0", True, "PV_2")
-print(CommandScheduler)
+CommandScheduler.load_file("psu_data")
+CommandScheduler.save_file("psu_data_copy")
 
 app.exec()

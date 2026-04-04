@@ -1,5 +1,6 @@
-from CommandController import Command
+from CommandController import CommandDictionary
 from operator import attrgetter
+import re
 
 class CommandedOutput:
     def __init__(self, seconds: float, command: tuple[str, int], arg: str | None, name: str, is_step: bool):
@@ -78,12 +79,57 @@ class CommandSchedulerClass:
         pass
 
     def load_file(self, filename: str) -> None:
-        pass
+        file_content = ""
+
+        with open(filename, "r") as file:
+            file_content = file.read()
+
+        rows = file_content.split("\n")[:-1] # Ignores newline
+        print(rows)
+
+        attr_names = rows[0].split(",")
+        commanded_outputs = rows[1:]
+
+        for commanded_output_str in commanded_outputs:
+            # Just placeholder values
+            read_command = CommandedOutput(0, ("", 0), None, "", False)
+
+            for name, attr in zip(attr_names, commanded_output_str.split(",")):
+                
+                # If statement for all non-str types
+                if name == "is_step":
+                    setattr(read_command, name, True if attr == "True" else False)
+                elif name == "command":
+                    setattr(read_command, name, CommandDictionary[attr])
+                else:
+                    setattr(read_command, name, attr)
+
+            self.commands.append(read_command)
 
     def save_file(self, filename: str) -> None:
-
         # Basically CSV
-        pass
+        if len(self.commands) == 0:
+            print("[Error] Cannot save file with zero commands")
+            return
+
+        file_txt = ""
+
+        # A crude way to do this, but members beginning with `<` when casted to a string are useless to stick into a CSV
+        attrs = [attr for attr in dir(self.commands[0]) if not attr.startswith("__") and not str(getattr(self.commands[0], attr)).startswith("<")]
+
+        file_txt += ",".join(attrs) + '\n'
+
+        # else 
+
+        for command in self.commands:
+
+            # A very cursed example of list comprehension. This simply pushes an attribute if it doesn't start with a '(', and if it does,
+            # split it. This is because the command attribute is a tuple, but we only care about the string in that tuple. The splitting magic
+            # simply extracts the command name out of the command tuple string literal
+            file_txt += ",".join([str(getattr(command, attr)) if not str(getattr(command, attr)).startswith("(") else str(getattr(command, attr))[2:].split(" ")[0] for attr in attrs]) + '\n'
+
+        with open(filename, "w") as file:
+            file.write(file_txt)
 
     def set_step_rate(self, step_rate: float) -> None:
         self.step_rate = step_rate
