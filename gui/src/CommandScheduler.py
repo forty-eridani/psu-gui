@@ -1,4 +1,4 @@
-from CommandController import CommandDictionary
+from CommandController import CommandDictionary, Command
 from operator import attrgetter
 import re
 
@@ -50,16 +50,49 @@ class CommandSchedulerClass:
         last_index, next_index = self.get_surrounding_commands(name, False)
 
         if next_index != -1 and self.commands[next_index].step_to:
-            self.interpolate(index, next_index, self.step_rate, f"INTRP_{name}")
+            self.interpolate(index, next_index, self.step_rate, f"INTRP_TO_{self.commands[next_index].name}")
 
         if last_index != -1 and should_step:
-            self.interpolate(last_index, index, self.step_rate, f"INTRP_{name}")
+            self.interpolate(last_index, index, self.step_rate, f"INTRP_TO_{name}")
 
         if last_index == -1 and should_step:
             print("[Warning] Connect step when this is the first command of the type")
 
     def remove_command(self, name: str) -> None:
-        pass
+        index = self.find_element(name)
+
+        if index == -1:
+            print(f"[Error] Command '{name}' does not exist.")
+            return
+
+        last_index, next_index = self.get_surrounding_commands(name, False)
+
+        had_steps = self.commands[index].step_to
+
+        index = self.find_element(name)
+        self.commands.pop(index)
+        next_index -= 1
+
+        # Means we removed the last coommand of that type
+        if last_index >= 0 and next_index < 0 and had_steps:
+            print(f'[Info] Removing steps leading up to removed command \'{name}\'.')
+
+            # Opposite of most normal loops: (index1, index2]
+            self.remove_steps(last_index, len(self.commands), self.commands[last_index].command)
+
+        # This means there is probably interpolation commands leading to this that have no `anchor`
+        if next_index >= 0 and last_index < 0 and self.commands[next_index].step_to:
+            print(f"[Info] Removing interpolation commands leading to command '{self.commands[next_index].name}'")
+
+            # Since we are certain that there are no commands leading to this command, we can just start at the first index. Also
+            # the `remove_steps()` assumes that each provided index was a manually entered command, we have start at -1 or it won't
+            # get rid of the first interpolation command
+            self.remove_steps(-1, next_index, self.commands[next_index].command)
+
+        if (next_index >= 0 and self.commands[next_index].step_to and last_index >= 0):
+            # You have to re-interpolate if a command was removed
+            print(f"[Info] Re-interpolating between commands '{self.commands[last_index].name}' and '{self.commands[next_index].name}'")
+            self.interpolate(last_index, next_index, self.step_rate, f"INTRP_TO_{self.commands[next_index].name}")
 
     def load_file(self, filename: str) -> None:
         file_content = ""
@@ -68,7 +101,6 @@ class CommandSchedulerClass:
             file_content = file.read()
 
         rows = file_content.split("\n")[:-1] # Ignores newline
-        print(rows)
 
         attr_names = rows[0].split(",")
         commanded_outputs = rows[1:]
@@ -164,13 +196,8 @@ class CommandSchedulerClass:
         assert(False not in [command.is_step and command.command == self.commands[index1].command for command in self.commands[index1 + 1:index2]])
 
         # We want to get rid of any step commands that already existed between the new indices
-        pop_count = 0
-        for i in range(index2 - 1, index1, -1):
-            if self.commands[i].command == self.commands[index1].command:
-                self.commands.pop(i)
-                pop_count += 1
 
-        index2 -= pop_count
+        index2 -= self.remove_steps(index1, index2, self.commands[index1].command)
 
         step_count: int = int((self.commands[index2].seconds - self.commands[index1].seconds) * step_rate)
         step_interval: float = (self.commands[index2].seconds - self.commands[index1].seconds) / step_count
@@ -195,6 +222,17 @@ class CommandSchedulerClass:
             new_command = CommandedOutput(new_time, self.commands[index1].command, str(new_arg), name, True, False)
             self.push_command(new_command)
 
+    # Returns the amount of steps removed
+    def remove_steps(self, index1: int, index2: int, command_type: tuple[str, int]) -> int:
+        assert(index1 < index2)
+
+        pop_count = 0
+        for i in range(index2 - 1, index1, -1):
+            if self.commands[i].command == command_type:
+                self.commands.pop(i)
+                pop_count += 1
+
+        return pop_count
 
     def find_element(self, name: str) -> int:
         for i in range(len(self.commands)):
@@ -203,5 +241,5 @@ class CommandSchedulerClass:
             
         return -1
 
-# One is default step rate
+# One step per second is default step rate
 CommandScheduler = CommandSchedulerClass(1)

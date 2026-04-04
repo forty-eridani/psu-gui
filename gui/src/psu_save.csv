@@ -1,0 +1,5 @@
+arg,command,is_step,name,seconds,step_to
+3.0,PV,False,PV_1.5,7.0,True
+3.6666666666666665,PV,True,INTRP_TO_PV_2,8.0,False
+4.333333333333333,PV,True,INTRP_TO_PV_2,9.0,False
+5.0,PV,False,PV_2,10.0,True
