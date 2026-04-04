@@ -10,3 +10,5 @@ gui/lib64
 gui/pyvenv.cfg
 gui/src/__pycache__/
 gui/Scripts/
+
+.vscode/

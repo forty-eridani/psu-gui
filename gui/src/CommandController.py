@@ -2,70 +2,74 @@ import serial
 from enum import Enum
 import threading
 
-# Stores tuples where first is the string and second is whether it takes an arg
+# Stores tuples where first is the string and second arg tells arg behavior:
+# 0: No argument
+# 1: Argument that cannot be interpolated
+# 2: Integer argument that can be interpolated
+# 3: Decimal argument that can be interpolated
 # The "_REQ" indicates that the command ends with a question mark
 class Command:
     # Initialization Control Commands
-    ADR = ("ADR ", True)
-    CLS = ("CLS", False)
-    RST = ("RST", False)
-    RMT = ("RMT?", False)
-    MDAV_REQ = ("MDAV?", False)
-    SLASH = ("\\", False)
+    ADR = ("ADR ", 1)
+    CLS = ("CLS", 0)
+    RST = ("RST", 0)
+    RMT = ("RMT?", 0)
+    MDAV_REQ = ("MDAV?", 0)
+    SLASH = ("\\", 0)
 
     # ID control commands
-    IDN_REQ = ("IDN?", False)
-    REV_REQ = ("REV?", False)
-    SN_REQ = ("SN?", False)
-    DATE_REQ = ("DATE?", False)
+    IDN_REQ = ("IDN?", 0)
+    REV_REQ = ("REV?", 0)
+    SN_REQ = ("SN?", 0)
+    DATE_REQ = ("DATE?", 0)
 
     # Output control commands
-    PV = ("PV ", True)
-    PV_REQ = ("PV?", False)
-    MV_REQ = ("MV?", False)
-    PC = ("PC ", True)
-    PC_REQ = ("PC?", False)
-    MC_REQ = ("MC?", False)
-    DVC_REQ = ("DVC?", False)
-    OUT = ("OUT ", True)
-    OUT_REQ = ("OUT?", False)
-    FLD = ("FLD ", True)
-    FLD_REQ = ("FLD?", False)
-    FBD = ("FBD ", True)
-    FBD_REQ = ("FBD?", False)
-    FBDRST = ("FBDRST", False)
-    OVP = ("OVP ", True)
-    OVP_REQ = ("OVP?", False)
-    OVM = ("OVM?", False)
-    UVL = ("UVL ", True)
-    UVL_REQ = ("UVL?", False)
-    AST = ("AST ", True)
-    AST_REQ = ("AST?", False)
-    SAV = ("SAV", False)
-    RCL = ("RCL", False)
-    MODE_REQ = ("MODE?", False)
-    MS = ("MS?", False)
+    PV = ("PV ", 3)
+    PV_REQ = ("PV?", 0)
+    MV_REQ = ("MV?", 0)
+    PC = ("PC ", 3)
+    PC_REQ = ("PC?", 0)
+    MC_REQ = ("MC?", 0)
+    DVC_REQ = ("DVC?", 0)
+    OUT = ("OUT ", 1)
+    OUT_REQ = ("OUT?", 0)
+    FLD = ("FLD ", 1)
+    FLD_REQ = ("FLD?", 0)
+    FBD = ("FBD ", 2)
+    FBD_REQ = ("FBD?", 0)
+    FBDRST = ("FBDRST", 0)
+    OVP = ("OVP ", 3)
+    OVP_REQ = ("OVP?", 0)
+    OVM = ("OVM?", 0)
+    UVL = ("UVL ", 3)
+    UVL_REQ = ("UVL?", 0)
+    AST = ("AST ", 1)
+    AST_REQ = ("AST?", 0)
+    SAV = ("SAV", 0)
+    RCL = ("RCL", 0)
+    MODE_REQ = ("MODE?", 0)
+    MS = ("MS?", 0)
 
     # Global Output Commands
-    GPRST = ("GRST", False)
-    GPV = ("GPV ", True)
-    GPC = ("GPC ", True)
-    GOUT = ("GOUT", False)
-    GSAV = ("GSAV", False)
-    GRCL = ("GRCL", False)
+    GPRST = ("GRST", 0)
+    GPV = ("GPV ", 3)
+    GPC = ("GPC ", 3)
+    GOUT = ("GOUT", 0)
+    GSAV = ("GSAV", 0)
+    GRCL = ("GRCL", 0)
 
     # Status Control Commands
-    STT_REQ = ("STT?", False)
-    FLT_REQ = ("FLT?", False)
-    FENA = ("FENA", False)
-    FENA_REQ = ("FENA?", False)
-    FEVE_REQ = ("FEVE?", False)
-    STAT_REQ = ("STAT?", False)
-    SENA = ("SENA", False)
-    SENA_REQ = ("SENA?", False)
-    SEVE_REQ = ("SEVE", False)
+    STT_REQ = ("STT?", 0)
+    FLT_REQ = ("FLT?", 0)
+    FENA = ("FENA", 0)
+    FENA_REQ = ("FENA?", 0)
+    FEVE_REQ = ("FEVE?", 0)
+    STAT_REQ = ("STAT?", 0)
+    SENA = ("SENA", 0)
+    SENA_REQ = ("SENA?", 0)
+    SEVE_REQ = ("SEVE", 0)
 
-class CommandQueueClass:
+class CommandControllerClass:
     def __init__(self, address, port):
         self.ser = serial.serial_for_url(f"{address}:{port}")
         self.command_queue = []
@@ -110,8 +114,14 @@ class CommandQueueClass:
         return result
 
     def __del__(self):
-        print("Closing socket")
-        self.ser.close()
+
+        if (hasattr(self, "ser")):
+            print("Closing socket")
+            self.ser.close()
 
 # Singleton Pattern 
-CommandQueue = CommandQueueClass("socket://127.0.0.1", "4000")
+
+try:
+    CommandController = CommandControllerClass("socket://127.0.0.1", "4000")
+except:
+    print("[Error] Could not create command controller singleton")

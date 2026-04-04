@@ -1,5 +1,9 @@
 from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QLineEdit, QGridLayout
+from PySide6.QtCharts import QChart, QChartView, QLineSeries
 from PySide6.QtCore import Qt
+
+from CommandScheduler import CommandScheduler
+from CommandController import Command
 
 HEIGHT = 600
 WIDTH = 800
@@ -55,5 +59,9 @@ class MainWindow(QMainWindow):
 app = QApplication()
 window = MainWindow()
 window.show()
+
+CommandScheduler.add_command(1, Command.PV, "1.0", False, "PV_1")
+CommandScheduler.add_command(5, Command.PV, "2.0", True, "PV_2")
+print(CommandScheduler)
 
 app.exec()
