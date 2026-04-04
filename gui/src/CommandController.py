@@ -187,3 +187,4 @@ try:
     CommandController = CommandControllerClass("socket://127.0.0.1", "4000")
 except:
     print("[Error] Could not create command controller singleton")
+    CommandController = None

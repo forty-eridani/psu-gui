@@ -151,6 +151,18 @@ class CommandSchedulerClass:
 
     def __str__(self):
         return f"{[str(command) for command in self.commands]}"
+    
+    # Will return empty array if command doesn't have a plot-able arg
+    def get_arg_plot(self, command_type: tuple[str, int]) -> tuple[list[float], list[float]]:
+        commands = []
+        times = []
+
+        for command in self.commands:
+            if command.command == command_type and command.command[1] > 1:
+                commands.append(command.arg)
+                times.append(command.seconds)
+
+        return (times, commands)
 
     def push_command(self, command: CommandedOutput) -> None:
         self.commands.append(command)

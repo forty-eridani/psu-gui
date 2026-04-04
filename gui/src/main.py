@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QLineEdit, QGridLayout
-from PySide6.QtCharts import QChart, QChartView, QLineSeries
+import pyqtgraph as pg
 from PySide6.QtCore import Qt
 
 from CommandScheduler import CommandScheduler
@@ -20,13 +20,25 @@ class MainWindow(QMainWindow):
 
         layout = QGridLayout(container)
 
-        label1 = QLabel("Test")
-        label1.setMinimumWidth(WIDTH // 2)
-        label1.setAlignment(Qt.AlignCenter) # type: ignore
+        # Beginning of graph section
+
+        graph_container = QWidget(container)
+        graph_layout = QVBoxLayout(graph_container)
+
+        self.graph = pg.PlotWidget()
+
+        times, args = CommandScheduler.get_arg_plot(Command.PV)
+
+        self.graph.plot(times, args)
+
+        graph_layout.addWidget(self.graph)
+
+        # End of graph section
 
         label2 = QLabel("Test")
         label2.setMinimumWidth(WIDTH // 2)
         label2.setAlignment(Qt.AlignCenter) # type: ignore
+
 
         # Console section TODO: Once GUI complete, add date/time at top of console
 
@@ -51,24 +63,16 @@ class MainWindow(QMainWindow):
         label3.setMinimumWidth(WIDTH // 2)
         label3.setAlignment(Qt.AlignCenter) # type: ignore
 
-        layout.addWidget(label1, 0, 0)
+        layout.addWidget(graph_container, 0, 0)
         layout.addWidget(label2, 0, 1)
         layout.addWidget(console_container, 1, 0)
         layout.addWidget(label3, 1, 1)
 
+CommandScheduler.add_command(1.0, Command.PV, "1.0", False, "PV_1")
+CommandScheduler.add_command(10.0, Command.PV, "10.0", True, "PV_2")
+
 app = QApplication()
 window = MainWindow()
 window.show()
-
-CommandScheduler.add_command(5.0, Command.PV, "10.0", False, "PV_1")
-CommandScheduler.add_command(7.0, Command.PV, "3.0", True, "PV_1.5")
-CommandScheduler.add_command(10.0, Command.PV, "5.0", True, "PV_2")
-
-CommandScheduler.remove_command("PV_1")
-CommandScheduler.save_file("psu_save.csv")
-
-# CommandScheduler.load_file("psu_save.csv")
-# CommandScheduler.save_file("psu_save2.csv")
-
 
 app.exec()
