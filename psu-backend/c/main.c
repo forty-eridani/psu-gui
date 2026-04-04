@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <errno.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <sys/types.h>
@@ -27,6 +28,10 @@ static void printBufHex(const char* prefix, const char* buf, int len) {
 }
 
 static void getAddrString(struct sockaddr* addr, char* buf) {
+	if (addr == NULL) {
+		printf("Could not make string out of null address.\n");
+		return;
+	}
 	if (addr->sa_family == AF_INET) {
 		struct sockaddr_in* addr_in = (struct sockaddr_in*)addr;
 		inet_ntop(addr_in->sin_family, &(addr_in->sin_addr), buf, INET_ADDRSTRLEN);
@@ -73,15 +78,15 @@ int main() {
 		}
 	}
 
+	if (local_fd == -1) {
+		fprintf(stderr, "Could not bind, Error: %s.\n", gai_strerror(errno));
+		exit(-1);
+	}	
+
 	getAddrString(cur->ai_addr, display_addr_buf);
 	printf("Found open socket on '%s'.\n", display_addr_buf);
 
 	freeaddrinfo(res);
-
-	if (local_fd == -1) {
-		fprintf(stderr, "Could not bind.\n");
-		exit(-1);
-	}	
 
 	if (listen(local_fd, BACKLOG) != 0) {
 		fprintf(stderr, "Could not listen.\n");

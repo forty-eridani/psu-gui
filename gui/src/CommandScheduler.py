@@ -159,8 +159,8 @@ class CommandSchedulerClass:
 
         for command in self.commands:
             if command.command == command_type and command.command[1] > 1:
-                commands.append(command.arg)
-                times.append(command.seconds)
+                commands.append(float(command.arg))
+                times.append(float(command.seconds))
 
         return (times, commands)
 
