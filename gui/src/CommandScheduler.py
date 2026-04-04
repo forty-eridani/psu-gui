@@ -81,6 +81,8 @@ class CommandSchedulerClass:
         pass
 
     def save_file(self, filename: str) -> None:
+
+        # Basically CSV
         pass
 
     def set_step_rate(self, step_rate: float) -> None:
@@ -116,7 +118,7 @@ class CommandSchedulerClass:
 
         # Excluding the nodes that already exist
         for i in range(1, step_count):
-            new_time = initial_seconds + i * initial_seconds
+            new_time = initial_seconds + i * step_interval
             new_arg = arg1 + i * arg_step
 
             # Means arg must be an integer
