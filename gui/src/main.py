@@ -1,4 +1,5 @@
-from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QLineEdit, QGridLayout, QScrollArea
+from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QLineEdit, QGridLayout, QScrollArea, QHBoxLayout, QPushButton, QComboBox, QCheckBox
+from PySide6.QtGui import QDoubleValidator
 import pyqtgraph as pg
 from PySide6.QtCore import Qt
 
@@ -7,6 +8,9 @@ from CommandController import Command, CommandController, CommandDictionary
 
 HEIGHT = 600
 WIDTH = 800
+
+EDIT_WIDTH = 400 
+EDIT_HEIGHT = 225 
 
 # The targets for all the values in code
 target_graph_views = {
@@ -23,14 +27,90 @@ true_graph_views = {
         Command.UVL_REQ[0]: Command.UVL_REQ,
 }
 
-register_graph_views = {
-        Command.FLT_REQ[0]: Command.FLT_REQ,
-        Command.FENA_REQ[0]: Command.FENA_REQ,
-        Command.FEVE_REQ[0]: Command.FEVE_REQ,
-        Command.STAT_REQ[0]: Command.STAT_REQ,
-        Command.SENA_REQ[0]: Command.SENA_REQ,
-        Command.SEVE_REQ[0]: Command.SEVE_REQ,
-}
+class AddCommand(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("Add Command")
+        self.setFixedSize(EDIT_WIDTH, EDIT_HEIGHT)
+
+        container = QWidget()
+        self.setCentralWidget(container)
+        
+        main_layout = QVBoxLayout(container)
+
+        # Fields
+
+        fields_container = QWidget(container)
+        fields_layout = QVBoxLayout(fields_container)
+
+        name_field = QLineEdit()
+        name_field.setPlaceholderText("Command Name")
+
+        self.command_field = QComboBox()
+        self.command_field.addItems(CommandDictionary.keys()) 
+        self.command_field.setStyleSheet("combobox-popup: 0;") # A solution to entire dropdown appearing
+                                                               # I found off of a 15 year old QT forum thread
+
+        self.command_field.currentIndexChanged.connect(self.set_hidden)
+
+        time_field = QLineEdit()
+        time_field.setValidator(QDoubleValidator())
+        time_field.setPlaceholderText("Time (s)")
+
+        arg_container = QWidget(fields_container)
+        arg_layout = QHBoxLayout(arg_container)
+        
+        self.arg_field = QLineEdit()
+        self.arg_field.setPlaceholderText("Argument for command")
+        self.arg_field.setDisabled(True)
+
+        self.step = QCheckBox("Step")
+
+        arg_layout.addWidget(self.arg_field)
+        arg_layout.addWidget(self.step)
+
+        fields_layout.addWidget(name_field)
+        fields_layout.addWidget(self.command_field)
+        fields_layout.addWidget(time_field)
+        fields_layout.addWidget(arg_container)
+
+        self.set_hidden()
+
+        # End fields
+
+        # Bottom 'Cancel' and 'Add' buttons
+
+        bottom_button_container = QWidget(container)
+        bottom_button_layout = QHBoxLayout(bottom_button_container)
+
+        cancel_button = QPushButton('Cancel')
+        cancel_button.setStyleSheet("text-align: center")
+        cancel_button.clicked.connect(self.close)
+
+        add_button = QPushButton('Add')
+        add_button.setStyleSheet("text-align: center")
+        add_button.clicked.connect(self.close)
+
+        bottom_button_layout.addWidget(cancel_button)
+        bottom_button_layout.addWidget(add_button)
+
+        # End bottom buttons
+
+        main_layout.addWidget(fields_container)
+        main_layout.addWidget(bottom_button_container)
+
+    def set_hidden(self):
+        if CommandDictionary[self.command_field.currentText()][1] < 1:
+            self.arg_field.setDisabled(True)
+        else:
+            self.arg_field.setEnabled(True)
+
+        if CommandDictionary[self.command_field.currentText()][1] < 2:
+            self.step.hide()
+        else:
+            self.step.show()
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -99,7 +179,7 @@ class MainWindow(QMainWindow):
         file_menu.addAction("Save Script as")
         file_menu.addAction("Save Script")
 
-        edit_menu.addAction("Add Command")
+        edit_menu.addAction("Add Command").triggered.connect(self.show_add_window)
         edit_menu.addAction("Remove Command")
 
         view_menu.addMenu("View")
@@ -122,6 +202,13 @@ class MainWindow(QMainWindow):
 
 
         self.font_metrics = self.output.fontMetrics()
+
+        self.w = None
+
+    def show_add_window(self):
+        if self.w == None:
+            self.w = AddCommand()
+            self.w.show()
 
     def update_graph(self, command_type: tuple[str, int], y_label: str):
         times, args = CommandScheduler.get_arg_plot(command_type)
@@ -146,9 +233,10 @@ CommandScheduler.add_command(1.0, Command.PV, "1.0", False, "PV_1")
 CommandScheduler.add_command(2.0, Command.PV, "3.0", False, "PV_1.5")
 CommandScheduler.add_command(10.0, Command.PV, "10.0", True, "PV_2")
 
-CommandScheduler.run_commands(0.0)
+# CommandScheduler.run_commands(0.0)
 
 app = QApplication()
+
 window = MainWindow()
 window.show()
 
