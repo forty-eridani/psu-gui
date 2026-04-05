@@ -1,5 +1,5 @@
 from ErrorMessage import Error
-from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QLineEdit, QGridLayout, QScrollArea, QHBoxLayout, QPushButton, QComboBox, QCheckBox
+from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QLineEdit, QGridLayout, QScrollArea, QHBoxLayout, QPushButton, QComboBox, QCheckBox, QFileDialog, QMessageBox
 from PySide6.QtGui import QDoubleValidator
 import pyqtgraph as pg
 from PySide6.QtCore import Qt
@@ -135,6 +135,10 @@ class AddCommand(QMainWindow):
         self.should_step = not self.should_step
 
     def push_command(self):
+        if self.time_field.text() == "":
+            Error("Command must have a time.").call()
+            return
+
         try:
             CommandScheduler.add_command(float(self.time_field.text()), CommandDictionary[self.command_field.currentText()], self.arg_field.text(), self.step.isChecked(), self.name_field.text())
         except Error as err:
@@ -205,6 +209,7 @@ class RemoveCommand(QMainWindow):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.script_path = "" 
 
         self.setWindowTitle("PSU GUI")
         self.setFixedSize(WIDTH, HEIGHT)
@@ -259,15 +264,17 @@ class MainWindow(QMainWindow):
         edit_menu = menu_bar.addMenu("Edit")
         view_menu = menu_bar.addMenu("View")
 
-        file_menu.addAction("New Script")
-        file_menu.addAction("Open Script")
-        file_menu.addAction("Save Script as")
-        file_menu.addAction("Save Script")
+        file_menu.addAction("New Script").triggered.connect(self.new_script)
+        # file_menu.triggered.connect(self.get_file_name)
+        file_menu.addAction("Open Script").triggered.connect(self.load_script)
+        file_menu.addAction("Save Script as").triggered.connect(self.save_script_as)
+        file_menu.addAction("Save Script").triggered.connect(self.save_script)
+        file_menu.addSeparator()
+        file_menu.addAction("Run Script")
 
         edit_menu.addAction("Add Command").triggered.connect(self.show_add_window)
         edit_menu.addAction("Remove Command").triggered.connect(self.show_remove_window)
 
-        view_menu.addMenu("View")
         for name, command in target_graph_views.items():
             action = view_menu.addAction("Graph commanded " + name)
 
@@ -275,10 +282,6 @@ class MainWindow(QMainWindow):
             action.triggered.connect(lambda *_, cmd=command: (self.set_graph(cmd, "Commanded " + cmd[0])))
 
         # End of menu section
-
-        label3 = QLabel("Test")
-        label3.setMinimumWidth(WIDTH // 2)
-        label3.setAlignment(Qt.AlignCenter) # type: ignore
 
         layout.addWidget(graph_container)
         layout.addWidget(console_container)
@@ -334,6 +337,43 @@ class MainWindow(QMainWindow):
         response = CommandController.run_raw_command(full_command)
 
         self.output.setText(self.output.text() + "[DEVICE] " + response)
+
+    def new_script(self):
+        msg_box = QMessageBox.question(self, "Quit Current script", "Are you sure you want to quit your current script?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+
+        if msg_box == QMessageBox.StandardButton.No:
+            return
+
+        CommandScheduler.clear()
+        self.update_graph()
+
+    def load_script(self):
+        msg_box = QMessageBox.question(self, "Quit Current script", "Are you sure you want to quit your current script?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+
+        if msg_box == QMessageBox.StandardButton.No:
+            return
+
+        self.script_path = QFileDialog.getOpenFileName(self)[0]
+        
+        if self.script_path != "":
+            CommandScheduler.load_file(self.script_path)
+
+        self.update_graph()
+
+    def save_script(self):
+        if self.script_path == "":
+            self.script_path = QFileDialog.getSaveFileName(self)[0]
+
+        # Means the user closed out of the file dialog
+        if self.script_path != "":
+            CommandScheduler.save_file(self.script_path)
+
+    def save_script_as(self):
+        self.script_path = QFileDialog.getSaveFileName(self)[0]
+
+        if self.script_path != "":
+            CommandScheduler.save_file(self.script_path)
+            
 
 app = QApplication()
 

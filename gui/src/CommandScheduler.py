@@ -33,6 +33,12 @@ class CommandSchedulerClass:
 
     # Step rate in steps per second
     def add_command(self, seconds: float, command: tuple[str, int], arg: str | None, should_step: bool, name: str) -> None:
+        if name == "":
+            raise Error("Cannot add a command without a name")
+
+        if (arg == "" or arg == None) and command[1] > 0:
+            raise Error(f"Cannon create command '{command[0]}' without an argument.")
+
         if self.is_running:
             raise Error("Cannot add command while script is running.")
 
@@ -65,6 +71,9 @@ class CommandSchedulerClass:
             raise Error("Connect step when this is the first command of the type")
 
     def remove_command(self, name: str) -> None:
+
+        if name == "":
+            raise Error("Cannot remove command without a name")
 
         if self.is_running:
             raise Error("Cannot remove commands while running.")
@@ -176,6 +185,9 @@ class CommandSchedulerClass:
                 times.append(float(command.seconds))
 
         return (times, commands)
+
+    def clear(self):
+        self.commands.clear()
 
     # Will run all the commands at the specified times. Start time references how late
     # in the program you want to be running the specified commands
