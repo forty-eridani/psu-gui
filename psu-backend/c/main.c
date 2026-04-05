@@ -116,4 +116,6 @@ int main() {
 		// printBufHex("Recieved From Client (hex)", rec_buf, rec_length);
 
 	}
+
+	printf("Reached end of program somehow\n");
 }

@@ -149,14 +149,11 @@ class CommandControllerClass:
         if (command[1] == True):
             real_command += arg
 
-        # Just in case requests come from multiple threads
-        with self.mutex:
-            print(f"Sending '{real_command}'...")
-            self.ser.write(f"{real_command}\r".encode())
-            result = self.ser.readline().decode()
+        print(f"Sending '{real_command}'...")
+        result = self.run_raw_command(real_command + "\r")
 
-            if self.on_command != None:
-                self.on_command(real_command, result)
+        if self.on_command != None:
+            self.on_command(real_command, result)
 
         return result 
     
@@ -169,6 +166,7 @@ class CommandControllerClass:
     def run_raw_command(self, command: str) -> str:
         result = None
 
+        # Just in case requests come from multiple threads
         with self.mutex:
             self.ser.write(command.encode())
             result = self.ser.readline().decode()
@@ -178,7 +176,7 @@ class CommandControllerClass:
     def __del__(self):
 
         if (hasattr(self, "ser")):
-            print("Closing socket")
+            print("Closing socket") 
             self.ser.close()
 
 # Singleton Pattern 

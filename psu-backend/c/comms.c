@@ -201,8 +201,10 @@ int rawSocketComms(int sockfd) {
 
 	double num_buf[BUF_LEN] = {'\0'};
 
-	if (len == 0)
+	if (len == 0) {
+		printf("Socket closed\n");
 		return -1;
+	}
 
 	printf("Recieved Request! Command recieved: %s\n", rec_buf);
 
@@ -511,9 +513,17 @@ int rawSocketComms(int sockfd) {
 
 	printf("Sending '%s'.\n", signal_buf);
 
-	send(sockfd, signal_buf, strlen(signal_buf) + 1, 0);
+	// The stupid pyserial library flushes its buffer before it closes, causing my 
+	// program here to get really confused when it gets a request but the socket 
+	// closes by the time it can send back a response. This just ignores the 
+	// SIGPIPE fault. That's what the MSG_NOSIGNAL is for
+	int result = send(sockfd, signal_buf, strlen(signal_buf) + 1, MSG_NOSIGNAL);
+
+	// Welp the socket closed on us
+	if (result == -1)
+		return -1;
 
 	printf("Response Sent!\n");
 
-	return 0;
+	return 1;
 }

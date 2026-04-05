@@ -1,9 +1,9 @@
-from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QLineEdit, QGridLayout
+from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QLineEdit, QGridLayout, QScrollArea
 import pyqtgraph as pg
 from PySide6.QtCore import Qt
 
 from CommandScheduler import CommandScheduler
-from CommandController import Command, CommandDictionary
+from CommandController import Command, CommandController, CommandDictionary
 
 HEIGHT = 600
 WIDTH = 800
@@ -66,17 +66,23 @@ class MainWindow(QMainWindow):
         console_container = QWidget(container)
         console_layout = QVBoxLayout(console_container)
 
-        line_edit = QLineEdit()
-        line_edit.setPlaceholderText("Type your command here")
-        line_edit.setMaximumWidth(WIDTH // 2)
+        self.line_edit = QLineEdit()
+        self.line_edit.setPlaceholderText("Type your command here")
+        self.line_edit.setMaximumWidth(WIDTH // 2)
 
-        output = QLabel("Hello There")
-        output.setMinimumHeight(250)
-        output.setStyleSheet("background-color: black; color: white; padding: 5px; font-family: \"Terminal\";")
-        output.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.line_edit.returnPressed.connect(self.push_cmd)
 
-        console_layout.addWidget(output)
-        console_layout.addWidget(line_edit)
+        self.output = QLabel("Hello There\n")
+        self.output.setMinimumHeight(250)
+        self.output.setStyleSheet("background-color: black; color: white; padding: 5px; font-family: \"Terminal\";")
+        self.output.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.output.setMinimumWidth(600)
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidget(self.output)
+
+        console_layout.addWidget(scroll_area)
+        console_layout.addWidget(self.line_edit)
 
         # End of console section
 
@@ -114,6 +120,9 @@ class MainWindow(QMainWindow):
         layout.addWidget(console_container, 1, 0)
         layout.addWidget(label3, 1, 1)
 
+
+        self.font_metrics = self.output.fontMetrics()
+
     def update_graph(self, command_type: tuple[str, int], y_label: str):
         times, args = CommandScheduler.get_arg_plot(command_type)
         
@@ -122,6 +131,14 @@ class MainWindow(QMainWindow):
         self.graph.setLabel('left', y_label)
         self.graph.setLabel('bottom', 'Time (s)')
         self.graph.plot(times, args, symbol='+', stepMode="right")
+
+    def push_cmd(self) -> None:
+        full_command = self.line_edit.text() + "\r"
+        self.output.setText(self.output.text() + "[USER] " + full_command[:-1] + '\n')
+
+        response = CommandController.run_raw_command(full_command)
+
+        self.output.setText(self.output.text() + "[DEVICE] " + response)
 
 CommandScheduler.set_step_rate(3)
 
