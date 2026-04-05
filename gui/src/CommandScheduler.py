@@ -1,5 +1,7 @@
-from CommandController import CommandDictionary, Command
+from CommandController import CommandDictionary, CommandController 
 from operator import attrgetter
+import threading
+import time
 
 class CommandedOutput:
     def __init__(self, seconds: float, command: tuple[str, int], arg: str | None, name: str, is_step: bool, step_to: bool):
@@ -18,14 +20,22 @@ class CommandedOutput:
     
     def __str__(self) -> str:
         return '{' + f"seconds: {self.seconds}, command: {self.command}, arg: {self.arg}, name: {self.name}, is_step: {self.is_step}" + '}'
+
+    def run(self) -> str:
+        return CommandController.run_command(self.command, self.arg if self.arg != None else "")
     
 class CommandSchedulerClass:
     def __init__(self, step_rate: float):
         self.commands: list[CommandedOutput] = []
         self.step_rate = step_rate
+        self.is_running = False
 
     # Step rate in steps per second
     def add_command(self, seconds: float, command: tuple[str, int], arg: str | None, should_step: bool, name: str) -> None:
+        if self.is_running:
+            print("[Error] Cannot add commands while running.")
+            return
+
         new_command = CommandedOutput(seconds, command, arg, name, False, should_step)
 
         if self.find_element(name) != -1:
@@ -58,6 +68,11 @@ class CommandSchedulerClass:
             print("[Warning] Connect step when this is the first command of the type")
 
     def remove_command(self, name: str) -> None:
+
+        if self.is_running:
+            print("[Error] Cannot remove commands while running.")
+            return
+
         index = self.find_element(name)
 
         if index == -1:
@@ -159,10 +174,34 @@ class CommandSchedulerClass:
 
         for command in self.commands:
             if command.command == command_type and command.command[1] > 1:
+
+                # This is only to make the type hinting shut up
+                assert(command.arg != None)
+
                 commands.append(float(command.arg))
                 times.append(float(command.seconds))
 
         return (times, commands)
+
+    # Will run all the commands at the specified times. Start time references how late
+    # in the program you want to be running the specified commands
+    def run_commands(self, start_time: float) -> None:
+        start_timestamp = time.time()
+
+        for i in range(len(self.commands) - 1):
+            if self.commands[i].seconds >= start_time:
+                thread = threading.Timer(self.commands[i].seconds - start_time, self.commands[i].run)
+                thread.start()
+
+                # Removing the delay from actually getting the thread going
+                cur = time.time()
+                start_time += cur - start_timestamp
+                start_timestamp = cur
+
+        # Getting around python not letting me have multiple statements in a lambda 
+        thread = threading.Timer(self.commands[len(self.commands) - 1].seconds - start_time, lambda: (self.commands[len(self.commands) - 1].run(), self.stop_running()))
+        thread.start()
+
 
     def push_command(self, command: CommandedOutput) -> None:
         self.commands.append(command)
@@ -252,6 +291,9 @@ class CommandSchedulerClass:
                 return i
             
         return -1
+
+    def stop_running(self) -> None:
+        self.is_running = False
 
 # One step per second is default step rate
 CommandScheduler = CommandSchedulerClass(1)

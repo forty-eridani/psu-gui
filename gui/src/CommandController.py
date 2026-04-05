@@ -142,7 +142,7 @@ class CommandControllerClass:
         self.on_command = None
         print(f"Opened socket at {address}:{port}")
 
-    def run_command(self, command: tuple[str, bool], arg: str) -> str:
+    def run_command(self, command: tuple[str, int], arg: str) -> str:
         real_command = command[0]
         result = ""
 
@@ -150,7 +150,7 @@ class CommandControllerClass:
             real_command += arg
 
         print(f"Sending '{real_command}'...")
-        result = self.run_raw_command(real_command + "\r")
+        result = self.run_raw_command(real_command + arg + "\r")
 
         if self.on_command != None:
             self.on_command(real_command, result)

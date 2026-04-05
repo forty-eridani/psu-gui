@@ -146,6 +146,8 @@ CommandScheduler.add_command(1.0, Command.PV, "1.0", False, "PV_1")
 CommandScheduler.add_command(2.0, Command.PV, "3.0", False, "PV_1.5")
 CommandScheduler.add_command(10.0, Command.PV, "10.0", True, "PV_2")
 
+CommandScheduler.run_commands(0.0)
+
 app = QApplication()
 window = MainWindow()
 window.show()
