@@ -1,4 +1,4 @@
-from os import wait
+from ErrorMessage import Error
 from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QLineEdit, QGridLayout, QScrollArea, QHBoxLayout, QPushButton, QComboBox, QCheckBox
 from PySide6.QtGui import QDoubleValidator
 import pyqtgraph as pg
@@ -9,8 +9,12 @@ from CommandController import Command, CommandController, CommandDictionary
 
 HEIGHT = 600
 WIDTH = 800
-EDIT_WIDTH = 400 
-EDIT_HEIGHT = 225 
+
+ADD_COMMAND_WIDTH = 400 
+ADD_COMMAND_HEIGHT = 225 
+
+REMOVE_COMMAND_WIDTH = 400 
+REMOVE_COMMAND_HEIGHT = 130 
 
 # The targets for all the values in code
 target_graph_views = {
@@ -39,7 +43,7 @@ class AddCommand(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("Add Command")
-        self.setFixedSize(EDIT_WIDTH, EDIT_HEIGHT)
+        self.setFixedSize(ADD_COMMAND_WIDTH, ADD_COMMAND_HEIGHT)
 
         container = QWidget()
         self.setCentralWidget(container)
@@ -96,11 +100,11 @@ class AddCommand(QMainWindow):
 
         cancel_button = QPushButton('Cancel')
         cancel_button.setStyleSheet("text-align: center")
-        cancel_button.clicked.connect(self.close)
+        cancel_button.clicked.connect(lambda: (self.clear_fields(), self.close()))
 
         add_button = QPushButton('Add')
         add_button.setStyleSheet("text-align: center")
-        add_button.clicked.connect(lambda: (update_plot(), self.push_command(), self.close()))
+        add_button.clicked.connect(lambda: (update_plot(), self.push_command()))
 
         bottom_button_layout.addWidget(cancel_button)
         bottom_button_layout.addWidget(add_button)
@@ -121,13 +125,82 @@ class AddCommand(QMainWindow):
         else:
             self.step.show()
 
+    def clear_fields(self):
+        self.step.setEnabled(True)
+        self.time_field.setText("")
+        self.arg_field.setText("")
+        self.name_field.setText("")
+
     def set_step(self):
         self.should_step = not self.should_step
 
     def push_command(self):
-        CommandScheduler.add_command(float(self.time_field.text()), CommandDictionary[self.command_field.currentText()], self.arg_field.text(), self.step.isChecked(), self.name_field.text())
+        try:
+            CommandScheduler.add_command(float(self.time_field.text()), CommandDictionary[self.command_field.currentText()], self.arg_field.text(), self.step.isChecked(), self.name_field.text())
+        except Error as err:
+            err.call()
+            return
+
         update_plot()
+        self.clear_fields()
+        self.close()
         print("Pushed a command", self.command_field.currentText())
+
+class RemoveCommand(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.setFixedSize(REMOVE_COMMAND_WIDTH, REMOVE_COMMAND_HEIGHT)
+        self.setWindowTitle("Remove Command")
+
+        container = QWidget()
+        layout = QVBoxLayout(container)
+
+        self.setCentralWidget(container)
+
+        # Bottom 'Cancel' and 'Add' buttons
+
+        bottom_button_container = QWidget(container)
+        bottom_button_layout = QHBoxLayout(bottom_button_container)
+
+        cancel_button = QPushButton('Cancel')
+        cancel_button.setStyleSheet("text-align: center")
+        cancel_button.clicked.connect(lambda: (self.clear_field(), self.close()))
+
+        remove_button = QPushButton('Remove')
+        remove_button.setStyleSheet("text-align: center")
+        remove_button.clicked.connect(self.remove_command)
+
+        bottom_button_layout.addWidget(cancel_button)
+        bottom_button_layout.addWidget(remove_button)
+
+        # End bottom buttons
+
+        # Remove field
+
+        self.remove_field = QLineEdit() 
+        self.remove_field.setPlaceholderText("Enter command name to be removed.")
+
+        # End of remove field
+
+        layout.addWidget(self.remove_field)
+        layout.addWidget(bottom_button_container)
+
+    def clear_field(self) -> None:
+        self.remove_field.setText("")
+
+    def remove_command(self):
+        command_name = self.remove_field.text()
+
+        try:
+            CommandScheduler.remove_command(command_name)
+        except Error as err:
+            err.call()
+            return
+
+        update_plot()
+        self.clear_field()
+        self.close()
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -139,7 +212,7 @@ class MainWindow(QMainWindow):
         container = QWidget()
         self.setCentralWidget(container)
 
-        layout = QGridLayout(container)
+        layout = QVBoxLayout(container)
 
         # Beginning of graph section
 
@@ -154,10 +227,6 @@ class MainWindow(QMainWindow):
 
         # End of graph section
 
-        label2 = QLabel("Test")
-        label2.setMinimumWidth(WIDTH // 2)
-        label2.setAlignment(Qt.AlignCenter) # type: ignore
-
         # Console section TODO: Once GUI complete, add date/time at top of console
 
         console_container = QWidget(container)
@@ -165,15 +234,14 @@ class MainWindow(QMainWindow):
 
         self.line_edit = QLineEdit()
         self.line_edit.setPlaceholderText("Type your command here")
-        self.line_edit.setMaximumWidth(WIDTH // 2)
 
         self.line_edit.returnPressed.connect(self.push_cmd)
 
         self.output = QLabel("Hello There\n")
         self.output.setMinimumHeight(250)
-        self.output.setStyleSheet("background-color: black; color: white; padding: 5px; font-family: \"Terminal\";")
+        self.output.setStyleSheet("background-color: black; color: white; padding: 5px; font-family: \"Terminal\"; font-weight: bold;")
+        self.output.setMinimumWidth(WIDTH)
         self.output.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.output.setMinimumWidth(600)
 
         scroll_area = QScrollArea()
         scroll_area.setWidget(self.output)
@@ -197,7 +265,7 @@ class MainWindow(QMainWindow):
         file_menu.addAction("Save Script")
 
         edit_menu.addAction("Add Command").triggered.connect(self.show_add_window)
-        edit_menu.addAction("Remove Command")
+        edit_menu.addAction("Remove Command").triggered.connect(self.show_remove_window)
 
         view_menu.addMenu("View")
         for name, command in target_graph_views.items():
@@ -212,17 +280,22 @@ class MainWindow(QMainWindow):
         label3.setMinimumWidth(WIDTH // 2)
         label3.setAlignment(Qt.AlignCenter) # type: ignore
 
-        layout.addWidget(graph_container, 0, 0)
-        layout.addWidget(label2, 0, 1)
-        layout.addWidget(console_container, 1, 0)
-        layout.addWidget(label3, 1, 1)
+        layout.addWidget(graph_container)
+        layout.addWidget(console_container)
 
-        self.w = None
+        self.add_window = None
+        self.remove_window = None
 
     def show_add_window(self):
-        if self.w == None:
-            self.w = AddCommand()
-        self.w.show()
+        if self.add_window == None:
+            self.add_window = AddCommand()
+        self.add_window.show()
+
+    def show_remove_window(self):
+        if self.remove_window == None:
+            self.remove_window = RemoveCommand()
+        self.remove_window.show()
+
 
     def set_cur_view(self, commmand: tuple[str, int], y_label: str): 
         self.current_view = CurrentView(commmand, y_label)

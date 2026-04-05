@@ -1,4 +1,5 @@
 from CommandController import CommandDictionary, CommandController 
+from ErrorMessage import Error
 from operator import attrgetter
 import threading
 import time
@@ -23,7 +24,7 @@ class CommandedOutput:
 
     def run(self) -> str:
         return CommandController.run_command(self.command, self.arg if self.arg != None else "")
-    
+
 class CommandSchedulerClass:
     def __init__(self, step_rate: float):
         self.commands: list[CommandedOutput] = []
@@ -33,26 +34,21 @@ class CommandSchedulerClass:
     # Step rate in steps per second
     def add_command(self, seconds: float, command: tuple[str, int], arg: str | None, should_step: bool, name: str) -> None:
         if self.is_running:
-            print("[Error] Cannot add commands while running.")
-            return
+            raise Error("Cannot add command while script is running.")
 
         new_command = CommandedOutput(seconds, command, arg, name, False, should_step)
 
         if self.find_element(name) != -1:
-            print(f"[Error] Command {name} already exists")
-            return
+            raise Error(f"Command {name} already exists")
         if (command[1] < 2 and should_step == True):
-            print(f"[Warning] Unable to step '{command}'.")
-            return
+            raise Error(f"Unable to step '{command}'.")
         elif (command[1] > 0 and arg == None):
-            print(f"[Error] '{command[0]}' requires an argument.")
-            return
+            raise Error(f"'{command[0]}' requires an argument.")
+        if (len(self.commands) == 0 and should_step == True):
+            raise Error(f"Cannot step when there are no other commands")
 
         self.push_command(new_command)
 
-        if (len(self.commands) == 1 and should_step == True):
-            print(f"[Warning] Cannot step when there is only one command of that type")
-            return
         
         index = self.find_element(name)
 
@@ -65,19 +61,18 @@ class CommandSchedulerClass:
             self.interpolate(last_index, index, self.step_rate, f"INTRP_TO_{name}")
 
         if last_index == -1 and should_step:
-            print("[Warning] Connect step when this is the first command of the type")
+            self.commands.pop(index)
+            raise Error("Connect step when this is the first command of the type")
 
     def remove_command(self, name: str) -> None:
 
         if self.is_running:
-            print("[Error] Cannot remove commands while running.")
-            return
+            raise Error("Cannot remove commands while running.")
 
         index = self.find_element(name)
 
         if index == -1:
-            print(f"[Error] Command '{name}' does not exist.")
-            return
+            raise Error(f"Command '{name}' does not exist.")
 
         last_index, next_index = self.get_surrounding_commands(name, False)
 
@@ -141,8 +136,7 @@ class CommandSchedulerClass:
     def save_file(self, filename: str) -> None:
         # Basically CSV
         if len(self.commands) == 0:
-            print("[Error] Cannot save file with zero commands")
-            return
+            raise Error("Cannot save file with zero commands")
 
         file_txt = ""
 
