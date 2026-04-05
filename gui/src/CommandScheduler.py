@@ -1,6 +1,5 @@
 from CommandController import CommandDictionary, Command
 from operator import attrgetter
-import re
 
 class CommandedOutput:
     def __init__(self, seconds: float, command: tuple[str, int], arg: str | None, name: str, is_step: bool, step_to: bool):
@@ -95,6 +94,7 @@ class CommandSchedulerClass:
             self.interpolate(last_index, next_index, self.step_rate, f"INTRP_TO_{self.commands[next_index].name}")
 
     def load_file(self, filename: str) -> None:
+        self.commands = []
         file_content = ""
 
         with open(filename, "r") as file:
