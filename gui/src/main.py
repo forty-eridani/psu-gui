@@ -1,5 +1,5 @@
 from ErrorMessage import Error
-from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QLineEdit, QGridLayout, QScrollArea, QHBoxLayout, QPushButton, QComboBox, QCheckBox, QFileDialog, QMessageBox
+from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QLineEdit, QGridLayout, QScrollArea, QHBoxLayout, QPushButton, QComboBox, QCheckBox, QFileDialog, QMessageBox, QListWidget
 from PySide6.QtGui import QDoubleValidator
 import pyqtgraph as pg
 from PySide6.QtCore import Qt
@@ -15,6 +15,9 @@ ADD_COMMAND_HEIGHT = 225
 
 REMOVE_COMMAND_WIDTH = 400 
 REMOVE_COMMAND_HEIGHT = 130 
+
+COMMAND_SCHEDULE_WIDTH = 400
+COMMAND_SCHEDULE_HEIGHT = 600 
 
 # The targets for all the values in code
 target_graph_views = {
@@ -206,6 +209,51 @@ class RemoveCommand(QMainWindow):
         self.clear_field()
         self.close()
 
+class ViewCommandSchedule(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.setFixedSize(COMMAND_SCHEDULE_WIDTH, COMMAND_SCHEDULE_HEIGHT)
+
+        container = QWidget()
+        self.setCentralWidget(container)
+        layout = QVBoxLayout(container)
+
+        # Selector portion
+
+        self.selector = QComboBox()
+        self.selector.setStyleSheet("combobox-popup: 0;") 
+        self.selector.activated.connect(self.set_list)
+        
+        for name in CommandDictionary.keys():
+            self.selector.addItem(name)
+
+        # End of selector portion
+
+        # Start of actual list 
+
+        scroll_area = QScrollArea()
+        scroll_container = QWidget(scroll_area)
+        scroll_layout = QVBoxLayout(scroll_container)
+
+        self.scroll_list = QListWidget()
+        self.scroll_list.setMinimumHeight(500)
+        self.scroll_list.setMinimumWidth(COMMAND_SCHEDULE_WIDTH - 50)
+
+        scroll_layout.addWidget(self.scroll_list)
+        scroll_area.setWidget(scroll_container)
+
+        # End of list
+
+        layout.addWidget(self.selector)
+        layout.addWidget(scroll_area)
+
+    def set_list(self):
+        self.scroll_list.clear()
+        command = CommandDictionary[self.selector.currentText()]
+        for cmd in CommandScheduler.get_command_times(command):
+            self.scroll_list.addItem(cmd)
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -265,7 +313,6 @@ class MainWindow(QMainWindow):
         view_menu = menu_bar.addMenu("View")
 
         file_menu.addAction("New Script").triggered.connect(self.new_script)
-        # file_menu.triggered.connect(self.get_file_name)
         file_menu.addAction("Open Script").triggered.connect(self.load_script)
         file_menu.addAction("Save Script as").triggered.connect(self.save_script_as)
         file_menu.addAction("Save Script").triggered.connect(self.save_script)
@@ -275,8 +322,13 @@ class MainWindow(QMainWindow):
         edit_menu.addAction("Add Command").triggered.connect(self.show_add_window)
         edit_menu.addAction("Remove Command").triggered.connect(self.show_remove_window)
 
+        commanded_submenu = view_menu.addMenu("Script Setpoints")
+        command_schedule = view_menu.addAction("Script Command Schedule")
+        command_schedule.triggered.connect(self.show_command_schedule)
+        self.command_schedule_window = None
+
         for name, command in target_graph_views.items():
-            action = view_menu.addAction("Graph commanded " + name)
+            action = commanded_submenu.addAction("Graph commanded " + name)
 
             # Sometimes I really hate python...
             action.triggered.connect(lambda *_, cmd=command: (self.set_graph(cmd, "Commanded " + cmd[0])))
@@ -373,7 +425,12 @@ class MainWindow(QMainWindow):
 
         if self.script_path != "":
             CommandScheduler.save_file(self.script_path)
-            
+
+    def show_command_schedule(self):
+        if self.command_schedule_window== None:
+            self.command_schedule_window = ViewCommandSchedule()
+
+        self.command_schedule_window.show()
 
 app = QApplication()
 

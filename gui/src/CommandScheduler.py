@@ -176,7 +176,7 @@ class CommandSchedulerClass:
         times = []
 
         for command in self.commands:
-            if command.command == command_type and command.command[1] > 1:
+            if command.command == command_type and command.command[1] > 0:
 
                 # This is only to make the type hinting shut up
                 assert(command.arg != None)
@@ -185,6 +185,15 @@ class CommandSchedulerClass:
                 times.append(float(command.seconds))
 
         return (times, commands)
+
+    def get_command_times(self, command_type: tuple[str, int]) -> list[str]:
+        relevant_commands: list[str] = []
+        for command in self.commands:
+            if command.command == command_type:
+                assert(command.arg != None) # Once again to shut up type hints
+                relevant_commands.append(f"[{command.name} at {command.seconds}s] " + command.command[0] + (" " + command.arg if command.command[1] > 0 else "")) # types: ignore
+
+        return relevant_commands
 
     def clear(self):
         self.commands.clear()
