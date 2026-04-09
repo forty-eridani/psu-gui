@@ -1,11 +1,11 @@
-from CommandController import CommandDictionary, CommandController 
-from ErrorMessage import Error
+from src.command.CommandController import CommandDictionary, CommandController 
+from src.ErrorMessage import Error
 from operator import attrgetter
 import threading
 import time
 
 class CommandedOutput:
-    def __init__(self, seconds: float, command: tuple[str, int], arg: str | None, name: str, is_step: bool, step_to: bool):
+    def __init__(self, seconds: float, command: tuple[str, int, bool], arg: str | None, name: str, is_step: bool, step_to: bool):
         self.seconds = seconds
         self.command = command
         self.arg = arg
@@ -32,7 +32,7 @@ class CommandSchedulerClass:
         self.is_running = False
 
     # Step rate in steps per second
-    def add_command(self, seconds: float, command: tuple[str, int], arg: str | None, should_step: bool, name: str) -> None:
+    def add_command(self, seconds: float, command: tuple[str, int, bool], arg: str | None, should_step: bool, name: str) -> None:
         if name == "":
             raise Error("Cannot add a command without a name")
 
@@ -171,7 +171,7 @@ class CommandSchedulerClass:
         return f"{[str(command) for command in self.commands]}"
     
     # Will return empty array if command doesn't have a plot-able arg
-    def get_arg_plot(self, command_type: tuple[str, int]) -> tuple[list[float], list[float]]:
+    def get_arg_plot(self, command_type: tuple[str, int, bool]) -> tuple[list[float], list[float]]:
         commands = []
         times = []
 
@@ -186,7 +186,7 @@ class CommandSchedulerClass:
 
         return (times, commands)
 
-    def get_command_times(self, command_type: tuple[str, int]) -> list[str]:
+    def get_command_times(self, command_type: tuple[str, int, bool]) -> list[str]:
         relevant_commands: list[str] = []
         for command in self.commands:
             if command.command == command_type:
@@ -289,7 +289,7 @@ class CommandSchedulerClass:
             self.push_command(new_command)
 
     # Returns the amount of steps removed
-    def remove_steps(self, index1: int, index2: int, command_type: tuple[str, int]) -> int:
+    def remove_steps(self, index1: int, index2: int, command_type: tuple[str, int, bool]) -> int:
         assert(index1 < index2)
 
         pop_count = 0
