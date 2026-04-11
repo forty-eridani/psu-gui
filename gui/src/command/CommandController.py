@@ -129,7 +129,7 @@ CommandDictionary = {
     "STAT?": ("STAT?", 0, True),
     "SENA": ("SENA", 0, False),
     "SENA?": ("SENA?", 0, True),
-    "SEVE?": ("SEVE", 0, True),
+    "SEVE?": ("SEVE", 0, False),
 } 
 
 class CommandControllerClass:

@@ -29,7 +29,7 @@ class MainWindow(QMainWindow):
 
         layout = QVBoxLayout(container)
 
-        self.graph = GraphWidget()
+        self.graph = GraphWidget([cmd for cmd in self.target_graph_views.values()], 32)
 
         self.console = ConsoleWidget()
 
@@ -60,7 +60,7 @@ class MainWindow(QMainWindow):
             action = commanded_submenu.addAction("Graph commanded " + name)
 
             # Sometimes I really hate pythonsrc..
-            action.triggered.connect(lambda *_, cmd=command: (self.graph.set_graph(cmd, "Commanded " + cmd[0])))
+            action.triggered.connect(lambda *_, cmd=command: (self.graph.set_graph(cmd, False)))
 
         # End of menu section
 

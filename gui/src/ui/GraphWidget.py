@@ -1,52 +1,71 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout
+from PySide6.QtWidgets import QWidget, QGridLayout 
 import pyqtgraph as pg
 
 from src.command.CommandScheduler import CommandScheduler
-from src.command.CommandController import CommandController, Command
 
 class CurrentView:
-    def __init__(self, command: tuple[str, int, bool], y_label: str):
-        self.command = command
+    def __init__(self, plot: pg.PlotWidget, y_label: str, realtime: bool, command_type: tuple[str, int, bool]):
+        self.plot = plot
         self.y_label = y_label
+        self.x_data1 = [] 
+        self.y_data1 = [] 
+        self.realtime = realtime
+        self.command_type = command_type
+
+        self.data_line1 = self.plot.plot(self.x_data1, self.y_data1, symbol='o', stepMode='right')
+
+        self.plot.setLabel("left", y_label)
+        self.plot.setLabel("bottom", "Time (s)")
+        self.plot.setTitle(y_label + " Over Time (s)")
+
+        if not realtime:
+            self.x_data2 = []
+            self.y_data2 = []
+
+            pen = pg.mkPen(color=(255, 0, 0))
+            self.data_line2 = self.plot.plot(self.x_data2, self.y_data2, pen=pen)
 
 class GraphWidget(QWidget):
-    def __init__(self):
+    # First index of plots is going to be the default graph
+    def __init__(self, plots: list[tuple[str, int, bool]], realtime_length: int):
         super().__init__()
 
-        graph_layout = QVBoxLayout(self)
+        self.realtime_length = realtime_length
 
-        self.graph = pg.PlotWidget()
+        self.graph_layout = QGridLayout(self)
 
-        self.set_graph(Command.PV, "Commanded " + Command.PV[0])
+        self.target_views = {
+            plot: CurrentView(pg.PlotWidget(), plot[0], False, plot) for plot in plots
+        }
 
-        graph_layout.addWidget(self.graph)
+        self.realtime_views = {
+            plot: CurrentView(pg.PlotWidget(), "Realtime " + plot[0], True, plot) for plot in plots
+        }
 
-    def set_graph(self, command_type: tuple[str, int, bool], y_label: str):
-        times, args = CommandScheduler.get_arg_plot(command_type)
+        self.cur_view = list(self.target_views.values())[0]
+        self.set_graph(list(self.target_views.values())[0].command_type, False)
         
-        self.graph.clear()
-        self.graph.setTitle(y_label + " Over Time")
-        self.graph.setLabel('left', y_label)
-        self.graph.setLabel('bottom', 'Time (s)')
-        self.graph.plot(times, args, symbol='+', stepMode="right")
+        self.script_running: bool = False
+        self.script_start: float = 0.0
 
-        self.set_cur_view(command_type, y_label)
+    def set_graph(self, command_type: tuple[str, int, bool], realtime: bool):
+        self.update_plot()
+        self.graph_layout.removeWidget(self.cur_view.plot)
+        self.cur_view.plot.hide()
 
-    def set_cur_view(self, commmand: tuple[str, int, bool], y_label: str): 
-        self.current_view = CurrentView(commmand, y_label)
-        print(self.current_view)
+        if realtime:
+            self.cur_view = self.realtime_views[command_type]
+        else:
+            self.cur_view = self.target_views[command_type]
+
+        self.graph_layout.addWidget(self.cur_view.plot, 0, 0)
+        self.cur_view.plot.show()
 
     def update_plot(self):
-        if (self.current_view != None):
-            times, args = CommandScheduler.get_arg_plot(self.current_view.command)
-            y_label = self.current_view.y_label
+        for view in self.target_views.values():
+            target_xs,  target_ys = CommandScheduler.get_arg_plot(view.command_type)
+            view.data_line1.setData(target_xs, target_ys)
+            print("Set data called at", view.y_label)
 
-            self.graph.clear()
-            self.graph.setTitle(y_label + " Over Time")
-            self.graph.setLabel('left', y_label)
-            self.graph.setLabel('bottom', 'Time (s)')
-            self.graph.plot(times, args, symbol='+', stepMode="right")
-
-            print("Updated cur graph")
-        else:
-            print("No current graph", self.current_view)
+        for views in self.realtime_views.values():
+            pass
