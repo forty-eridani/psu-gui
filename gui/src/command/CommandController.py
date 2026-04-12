@@ -141,6 +141,8 @@ class CommandControllerClass:
         self.command_queue = []
         self.mutex = threading.Lock()
 
+        self.on_command = None
+
     def run_command(self, command: tuple[str, int, bool], arg: str) -> str:
         if self.is_connected:
             real_command = command[0]
@@ -149,7 +151,7 @@ class CommandControllerClass:
             if (command[1] == True):
                 real_command += arg
 
-            print(f"Sending '{real_command}'src..")
+            # print(f"Sending '{real_command}'src..")
             result = self.run_raw_command(real_command + arg + "\r")
 
             if self.on_command != None:

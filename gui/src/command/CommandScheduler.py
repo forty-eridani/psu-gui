@@ -30,6 +30,11 @@ class CommandSchedulerClass:
         self.commands: list[CommandedOutput] = []
         self.step_rate = step_rate
         self.is_running = False
+        self.threads: list[threading.Timer] = []
+
+        self.start_time = -1
+        self.pause_time = 0.0
+        self.pause_duration = 0.0
 
     # Step rate in steps per second
     def add_command(self, seconds: float, command: tuple[str, int, bool], arg: str | None, should_step: bool, name: str) -> None:
@@ -126,7 +131,7 @@ class CommandSchedulerClass:
 
         for commanded_output_str in commanded_outputs:
             # Just placeholder values
-            read_command = CommandedOutput(0, ("", 0), None, "", False, False)
+            read_command = CommandedOutput(0, ("", 0, False), None, "", False, False)
 
             for name, attr in zip(attr_names, commanded_output_str.split(",")):
                 
@@ -201,22 +206,53 @@ class CommandSchedulerClass:
     # Will run all the commands at the specified times. Start time references how late
     # in the program you want to be running the specified commands
     def run_commands(self, start_time: float) -> None:
-        start_timestamp = time.time()
+        if self.start_time < 0:
+            self.start_time = time.monotonic()
+            # print("Setting monotonic clock to", str(self.start_time))
 
-        for i in range(len(self.commands) - 1):
-            if self.commands[i].seconds >= start_time:
-                thread = threading.Timer(self.commands[i].seconds - start_time, self.commands[i].run)
-                thread.start()
+        if self.is_running == False:
+            for i in range(len(self.commands) - 1):
+                if self.commands[i].seconds >= start_time:
+                    thread = threading.Timer(self.commands[i].seconds - start_time, self.commands[i].run)
+                    thread.start()
 
-                # Removing the delay from actually getting the thread going
-                cur = time.time()
-                start_time += cur - start_timestamp
-                start_timestamp = cur
+                    self.threads.append(thread)
 
-        # Getting around python not letting me have multiple statements in a lambda 
-        thread = threading.Timer(self.commands[len(self.commands) - 1].seconds - start_time, lambda: (self.commands[len(self.commands) - 1].run(), self.stop_running()))
-        thread.start()
+            # Getting around python not letting me have multiple statements in a lambda :(
+            thread = threading.Timer(self.commands[len(self.commands) - 1].seconds - start_time, lambda: (self.commands[len(self.commands) - 1].run(), self.stop_running()))
+            thread.start()
+            self.threads.append(thread)
 
+        self.is_running = True
+
+    def stop_running(self, on_pause: bool = False) -> None:
+        for thread in self.threads:
+            thread.cancel()
+
+        self.threads = []
+
+        self.is_running = False
+
+        if not on_pause:
+            self.start_time = -1
+            self.pause_time = 0.0
+            self.pause_duration = 0.0
+
+    def pause(self):
+        assert(self.is_running)
+
+        self.stop_running(on_pause=True)
+        self.pause_time = time.monotonic()
+        # print("Paused at " + str(self.pause_time - self.start_time) + " seconds while start time is " + str(self.start_time))
+
+    def resume(self):
+        assert(not self.is_running)
+        cur_time = time.monotonic()
+        self.pause_duration += cur_time - self.pause_time
+        cur_script_time = (cur_time - self.start_time) - self.pause_duration
+
+        # print("Resuming at " + str(cur_script_time) + " seconds.")
+        self.run_commands(cur_script_time)
 
     def push_command(self, command: CommandedOutput) -> None:
         self.commands.append(command)
@@ -306,9 +342,6 @@ class CommandSchedulerClass:
                 return i
             
         return -1
-
-    def stop_running(self) -> None:
-        self.is_running = False
 
 # One step per second is default step rate
 CommandScheduler = CommandSchedulerClass(1)

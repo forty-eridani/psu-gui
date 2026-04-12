@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QFileDialog, QMessageBox, QHBoxLayout, QLabel
+from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QFileDialog, QMessageBox, QHBoxLayout, QLabel, QPushButton, QGraphicsOpacityEffect
 
 from src.command.CommandScheduler import CommandScheduler
 from src.command.CommandController import CommandController, CommandDictionary, Command
@@ -8,6 +8,7 @@ from src.ui.GraphWidget import GraphWidget
 from src.ui.ConsoleWidget import ConsoleWidget
 from src.ui.CommandScheduleWindow import CommandScheduleWindow
 from src.ui.ConnectPromptWindow import ConnectPromptWindow
+from src.ui.ColorPalette import ColorPalette
 
 HEIGHT = 800
 WIDTH = 800
@@ -15,7 +16,7 @@ WIDTH = 800
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.script_path = "" 
+        self.script_path = ""
 
         # The targets for all the values in code
         self.target_graph_views = {
@@ -46,6 +47,9 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("PSU GUI")
         self.setFixedSize(WIDTH, HEIGHT)
+
+        self.disconnected_style = f"color: {ColorPalette.ALIZARIN}; font-size: 16px; font-weight: bold;"
+        self.connected_style = f"color: {ColorPalette.EMERALD}; font-size: 16px; font-weight: bold;"
 
         container = QWidget()
         self.setCentralWidget(container)
@@ -97,13 +101,38 @@ class MainWindow(QMainWindow):
 
         # Top bar section
 
+        self.paused = False
+
         top_bar_container = QWidget()
         top_bar = QHBoxLayout(top_bar_container)
 
+        common_styles = "border: none; max-width: 80px; height: 30px; font-size: 14px; font-weight: bold; color: white; border-radius: 2px;"
+
         self.connected_label = QLabel("Disconnected •")
-        self.connected_label.setStyleSheet("color: red;")
+        self.connected_label.setStyleSheet(self.disconnected_style)
+
+        self.run_script_button = QPushButton("Run")
+        self.run_script_button.setStyleSheet(common_styles + f"background-color: {ColorPalette.EMERALD};")
+        self.run_script_button.setDisabled(True)
+        self.run_script_button.clicked.connect(self.run_script)
+        self.disable_button(self.run_script_button)
+
+        self.pause_script_button = QPushButton("Pause")
+        self.pause_script_button.setStyleSheet(common_styles + f"background-color: {ColorPalette.SUN_FLOWER};")
+        self.pause_script_button.setDisabled(True)
+        self.pause_script_button.clicked.connect(self.pause_script)
+        self.disable_button(self.pause_script_button)
+
+        self.stop_script_button = QPushButton("Stop")
+        self.stop_script_button.setStyleSheet(common_styles + f"background-color: {ColorPalette.ALIZARIN}")
+        self.stop_script_button.setDisabled(True)
+        self.stop_script_button.clicked.connect(self.stop_script)
+        self.disable_button(self.stop_script_button)
 
         top_bar.addWidget(self.connected_label)
+        top_bar.addWidget(self.run_script_button)
+        top_bar.addWidget(self.pause_script_button)
+        top_bar.addWidget(self.stop_script_button)
 
         # End of top bar section
 
@@ -175,9 +204,60 @@ class MainWindow(QMainWindow):
 
     def on_connection(self):
         self.connected_label.setText("Connected •")
-        self.connected_label.setStyleSheet("color: green;")
+        self.connected_label.setStyleSheet(self.connected_style)
+        self.graph.start_rt()
+
+        self.enable_button(self.run_script_button)
 
     def disconnect_from_device(self):
         CommandController.disconnect()
         self.connected_label.setText("Disconnected •")
-        self.connected_label.setStyleSheet("color: red;")
+        self.connected_label.setStyleSheet(self.disconnected_style)
+        self.graph.stop_rt()
+        CommandScheduler.stop_running()
+
+        self.disable_button(self.run_script_button)
+        self.disable_button(self.pause_script_button)
+        self.disable_button(self.stop_script_button)
+
+    def run_script(self):
+        if not self.paused:
+            CommandScheduler.run_commands(0.0)
+        else:
+            CommandScheduler.resume()
+
+        self.disable_button(self.run_script_button)
+
+        self.enable_button(self.stop_script_button)
+
+        self.enable_button(self.pause_script_button)
+
+    def pause_script(self):
+        CommandScheduler.pause()
+        self.paused = True
+
+        self.disable_button(self.pause_script_button)
+
+        self.enable_button(self.stop_script_button)
+
+        self.enable_button(self.run_script_button)
+
+    def stop_script(self):
+        CommandScheduler.stop_running()
+        self.paused = False
+
+        self.disable_button(self.stop_script_button)
+
+        self.disable_button(self.pause_script_button)
+
+        self.enable_button(self.run_script_button)
+
+    def disable_button(self, button: QPushButton):
+        self.gray_out_effect = QGraphicsOpacityEffect(button)
+        self.gray_out_effect.setOpacity(0.5)
+        button.setGraphicsEffect(self.gray_out_effect)
+        button.setDisabled(True)
+
+    def enable_button(self, button: QPushButton):
+        button.setGraphicsEffect(None)
+        button.setDisabled(False)

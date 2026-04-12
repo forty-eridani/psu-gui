@@ -121,8 +121,11 @@ class GraphWidget(QWidget):
     def stop_script(self):
         self.script_running = False 
 
-    def can_connect(self):
+    def start_rt(self):
         self.timer = QTimer()
         self.timer.setInterval(self.realtime_interval)
         self.timer.timeout.connect(self.update_rt_data)
         self.timer.start()
+
+    def stop_rt(self):
+        self.timer.stop()
