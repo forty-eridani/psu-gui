@@ -154,9 +154,6 @@ class CommandControllerClass:
             # print(f"Sending '{real_command}'src..")
             result = self.run_raw_command(real_command + arg + "\r")
 
-            if self.on_command != None:
-                self.on_command(real_command, result)
-
             return result 
         else:
             raise Error("Not connected to device")
@@ -175,6 +172,8 @@ class CommandControllerClass:
             with self.mutex:
                 self.ser.write(command.encode())
                 result = self.ser.readline().decode()
+                if self.on_command != None:
+                    self.on_command(command, result)
 
             return result
 

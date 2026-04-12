@@ -9,6 +9,7 @@ from src.ui.ConsoleWidget import ConsoleWidget
 from src.ui.CommandScheduleWindow import CommandScheduleWindow
 from src.ui.ConnectPromptWindow import ConnectPromptWindow
 from src.ui.ColorPalette import ColorPalette
+from src.ui.OutputWindow import OutputWindow
 
 HEIGHT = 800
 WIDTH = 800
@@ -82,6 +83,7 @@ class MainWindow(QMainWindow):
         commanded_submenu = view_menu.addMenu("Script Setpoints")
         realtime_submenu = view_menu.addMenu("Real Time Device Telemetry")
         command_schedule = view_menu.addAction("Script Command Schedule")
+        view_menu.addAction("Output Console").triggered.connect(self.show_output_window)
         command_schedule.triggered.connect(self.show_command_schedule)
         self.command_schedule_window = None
 
@@ -143,6 +145,9 @@ class MainWindow(QMainWindow):
         self.add_window = None
         self.remove_window = None
         self.connection_prompt = None
+        self.output_window = OutputWindow()
+
+        CommandController.set_on_command(self.output_window.add_cmd)
 
     def show_add_window(self):
         if self.add_window == None:
@@ -201,6 +206,12 @@ class MainWindow(QMainWindow):
             self.connection_prompt = ConnectPromptWindow(self.on_connection)
         
         self.connection_prompt.show()
+
+    def show_output_window(self):
+        if self.output_window == None:
+            self.output_window = OutputWindow()
+
+        self.output_window.show()
 
     def on_connection(self):
         self.connected_label.setText("Connected •")

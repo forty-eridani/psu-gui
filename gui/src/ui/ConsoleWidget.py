@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QLabel, QWidget, QVBoxLayout, QLineEdit, QScrollArea
+from PySide6.QtWidgets import QTextEdit, QWidget, QVBoxLayout, QLineEdit, QScrollArea
 from PySide6.QtCore import Qt
 
 from src.command.CommandController import CommandController
@@ -17,25 +17,23 @@ class ConsoleWidget(QWidget):
 
         self.line_edit.returnPressed.connect(self.push_cmd)
 
-        self.output = QLabel("Hello There\n")
+        self.output = QTextEdit("Hello There\n")
         self.output.setMinimumHeight(HEIGHT)
         self.output.setStyleSheet("background-color: black; color: white; padding: 5px; font-family: \"Terminal\"; font-weight: bold;")
         self.output.setMinimumWidth(WIDTH)
         self.output.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.output.setReadOnly(True)
 
-        scroll_area = QScrollArea()
-        scroll_area.setWidget(self.output)
-
-        console_layout.addWidget(scroll_area)
+        console_layout.addWidget(self.output)
         console_layout.addWidget(self.line_edit)
 
     def push_cmd(self) -> None:
         full_command = self.line_edit.text() + "\r"
-        self.output.setText(self.output.text() + "[USER] " + full_command[:-1] + '\n')
+        self.output.append("[USER] " + full_command[:-1])
 
         try:
             response = CommandController.run_raw_command(full_command)
-            self.output.setText(self.output.text() + "[DEVICE] " + response)
+            self.output.append("[DEVICE] " + response)
         except Error as err:
             err.call()
 
