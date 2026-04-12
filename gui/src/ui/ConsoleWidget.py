@@ -2,6 +2,7 @@ from PySide6.QtWidgets import QLabel, QWidget, QVBoxLayout, QLineEdit, QScrollAr
 from PySide6.QtCore import Qt
 
 from src.command.CommandController import CommandController
+from src.ErrorMessage import Error
 
 WIDTH = 750
 HEIGHT = 250
@@ -32,6 +33,13 @@ class ConsoleWidget(QWidget):
         full_command = self.line_edit.text() + "\r"
         self.output.setText(self.output.text() + "[USER] " + full_command[:-1] + '\n')
 
-        response = CommandController.run_raw_command(full_command)
+        try:
+            response = CommandController.run_raw_command(full_command)
+            self.output.setText(self.output.text() + "[DEVICE] " + response)
+        except Error as err:
+            err.call()
 
-        self.output.setText(self.output.text() + "[DEVICE] " + response)
+        self.clear_field()
+
+    def clear_field(self) -> None:
+        self.line_edit.setText("")

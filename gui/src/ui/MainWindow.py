@@ -1,14 +1,15 @@
-from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QFileDialog, QMessageBox
+from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QFileDialog, QMessageBox, QHBoxLayout, QLabel
 
 from src.command.CommandScheduler import CommandScheduler
-from src.command.CommandController import CommandController, CommandDictionary
+from src.command.CommandController import CommandController, CommandDictionary, Command
 from src.ui.AddCommandWindow import AddCommandWindow
 from src.ui.RemoveCommandWindow import RemoveCommandWindow
 from src.ui.GraphWidget import GraphWidget
 from src.ui.ConsoleWidget import ConsoleWidget
 from src.ui.CommandScheduleWindow import CommandScheduleWindow
+from src.ui.ConnectPromptWindow import ConnectPromptWindow
 
-HEIGHT = 600
+HEIGHT = 800
 WIDTH = 800
 
 class MainWindow(QMainWindow):
@@ -18,7 +19,29 @@ class MainWindow(QMainWindow):
 
         # The targets for all the values in code
         self.target_graph_views = {
-            command_str: command_value for command_str, command_value in CommandDictionary.items() if command_value[1] > 1 
+                "Target Voltage (v)": Command.PV,
+                "Target Current (a)": Command.PC,
+                "Target Fold Back Delay (ns)": Command.FBD,
+                "Target Overvoltage Limit (v)": Command.OVP,
+                "Target Undervoltage Limit (v)": Command.UVL
+        }
+
+        self.target_real_table = {
+            Command.PV: Command.MV_REQ,
+            Command.PC: Command.MC_REQ,
+            Command.FBD: Command.FBD_REQ,
+            Command.OVP: Command.OVP_REQ,
+            Command.UVL: Command.UVL_REQ
+        }
+
+        self.telemetry_views = {
+            "Requested Voltage (v)": Command.PV_REQ,
+            "True Voltage (v)": Command.MV_REQ,
+            "Target Current (a)": Command.PC_REQ,
+            "True Current (a)": Command.MC_REQ,
+            "Foldback Delay (ns)": Command.FBD_REQ,
+            "Overvoltage Limit (v)": Command.OVP_REQ,
+            "Undervoltage Limit (v)": Command.UVL_REQ,
         }
 
         self.setWindowTitle("PSU GUI")
@@ -29,7 +52,7 @@ class MainWindow(QMainWindow):
 
         layout = QVBoxLayout(container)
 
-        self.graph = GraphWidget([cmd for cmd in self.target_graph_views.values()], 32)
+        self.graph = GraphWidget(self.target_graph_views, self.telemetry_views, self.target_real_table, 32, 1000)
 
         self.console = ConsoleWidget()
 
@@ -46,12 +69,14 @@ class MainWindow(QMainWindow):
         file_menu.addAction("Save Script as").triggered.connect(self.save_script_as)
         file_menu.addAction("Save Script").triggered.connect(self.save_script)
         file_menu.addSeparator()
-        file_menu.addAction("Run Script")
+        file_menu.addAction("Connect").triggered.connect(self.show_connect_prompt)
+        file_menu.addAction("Disconnect").triggered.connect(self.disconnect_from_device)
 
         edit_menu.addAction("Add Command").triggered.connect(self.show_add_window)
         edit_menu.addAction("Remove Command").triggered.connect(self.show_remove_window)
 
         commanded_submenu = view_menu.addMenu("Script Setpoints")
+        realtime_submenu = view_menu.addMenu("Real Time Device Telemetry")
         command_schedule = view_menu.addAction("Script Command Schedule")
         command_schedule.triggered.connect(self.show_command_schedule)
         self.command_schedule_window = None
@@ -62,13 +87,33 @@ class MainWindow(QMainWindow):
             # Sometimes I really hate pythonsrc..
             action.triggered.connect(lambda *_, cmd=command: (self.graph.set_graph(cmd, False)))
 
+        for name, command in self.telemetry_views.items():
+            action = realtime_submenu.addAction("Real Time " + name)
+
+            # Sometimes I really hate pythonsrc..
+            action.triggered.connect(lambda *_, cmd=command: (self.graph.set_graph(cmd, True)))
+
         # End of menu section
 
+        # Top bar section
+
+        top_bar_container = QWidget()
+        top_bar = QHBoxLayout(top_bar_container)
+
+        self.connected_label = QLabel("Disconnected •")
+        self.connected_label.setStyleSheet("color: red;")
+
+        top_bar.addWidget(self.connected_label)
+
+        # End of top bar section
+
+        layout.addWidget(top_bar_container)
         layout.addWidget(self.graph)
         layout.addWidget(self.console)
 
         self.add_window = None
         self.remove_window = None
+        self.connection_prompt = None
 
     def show_add_window(self):
         if self.add_window == None:
@@ -121,3 +166,18 @@ class MainWindow(QMainWindow):
             self.command_schedule_window = CommandScheduleWindow()
 
         self.command_schedule_window.show()
+
+    def show_connect_prompt(self):
+        if self.connection_prompt == None:
+            self.connection_prompt = ConnectPromptWindow(self.on_connection)
+        
+        self.connection_prompt.show()
+
+    def on_connection(self):
+        self.connected_label.setText("Connected •")
+        self.connected_label.setStyleSheet("color: green;")
+
+    def disconnect_from_device(self):
+        CommandController.disconnect()
+        self.connected_label.setText("Disconnected •")
+        self.connected_label.setStyleSheet("color: red;")

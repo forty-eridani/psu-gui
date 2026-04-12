@@ -364,7 +364,7 @@ int rawSocketComms(int sockfd) {
 		}
 	} 
 	else if (strcmp(rec_buf, "FBD?\r") == 0) {
-		sprintf(signal_buf, "%us", device.foldback_delay);
+		sprintf(signal_buf, "%ds", device.foldback_delay);
 	} 
 	else if (strcmp(rec_buf, "FBDRST\r") == 0) {
 		device.foldback_delay = 0.0;

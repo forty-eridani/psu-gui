@@ -2,6 +2,8 @@ import serial
 from enum import Enum
 import threading
 
+from src.ErrorMessage import Error
+
 # Stores tuples where first is the string and second arg tells arg behavior:
 # 0: No argument
 # 1: Argument that cannot be interpolated
@@ -133,31 +135,30 @@ CommandDictionary = {
 } 
 
 class CommandControllerClass:
-    def __init__(self, address, port):
-        self.ser = serial.serial_for_url(f"{address}:{port}")
+    def __init__(self):
+        self.is_connected = False
+
         self.command_queue = []
         self.mutex = threading.Lock()
 
-        # Can be set as a callback whenever a command is run. Must take two 
-        # strings as arguments: one for the command and one for the response
-        self.on_command = None
-        print(f"Opened socket at {address}:{port}")
-
     def run_command(self, command: tuple[str, int, bool], arg: str) -> str:
-        real_command = command[0]
-        result = ""
+        if self.is_connected:
+            real_command = command[0]
+            result = ""
 
-        if (command[1] == True):
-            real_command += arg
+            if (command[1] == True):
+                real_command += arg
 
-        print(f"Sending '{real_command}'src..")
-        result = self.run_raw_command(real_command + arg + "\r")
+            print(f"Sending '{real_command}'src..")
+            result = self.run_raw_command(real_command + arg + "\r")
 
-        if self.on_command != None:
-            self.on_command(real_command, result)
+            if self.on_command != None:
+                self.on_command(real_command, result)
 
-        return result 
-    
+            return result 
+        else:
+            raise Error("Not connected to device")
+ 
     # Sets the function called when commands are run. Function must take 
     # two strings as arguments: one for the command and one for the response
     def set_on_command(self, on_command) -> None:
@@ -165,28 +166,44 @@ class CommandControllerClass:
 
     # Runs the raw text param as a command. Must be terminated with carriage return
     def run_raw_command(self, command: str) -> str:
-        result = None
+        if self.is_connected:
+            result = None
 
-        # Just in case requests come from multiple threads
-        with self.mutex:
-            self.ser.write(command.encode())
-            result = self.ser.readline().decode()
+            # Just in case requests come from multiple threads
+            with self.mutex:
+                self.ser.write(command.encode())
+                result = self.ser.readline().decode()
 
-        return result
+            return result
 
-    def get_status(self):
-        pass
+        raise Error("Not connected to device")
+
+    def connect(self, addr: str, port: str) -> None:
+        if self.is_connected:
+            raise Error("You are currently connected to a device. Please disconnect before connecting to another device.")
+        try: 
+            self.ser = serial.serial_for_url(f"{addr}:{port}")
+            self.is_connected = True
+        except:
+            self.is_connected = False
+            raise Error(f"Could not open '{addr}:{port}'")
+
+        if self.is_connected:
+            print(f"Opened socket at {addr}:{port}")
+        else:
+            print(f"Could not connect to {addr}:{port}")
+
+    def disconnect(self) -> None:
+        if self.is_connected:
+            self.ser.close()
+            self.is_connected = False
 
     def __del__(self):
 
-        if (hasattr(self, "ser")):
+        if (self.is_connected):
             print("Closing socket") 
             self.ser.close()
 
 # Singleton Pattern 
 
-try:
-    CommandController = CommandControllerClass("socket://127.0.0.1", "4000")
-except:
-    print("[Error] Could not create command controller singleton")
-    CommandController = None
+CommandController = CommandControllerClass()

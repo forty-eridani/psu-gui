@@ -1,6 +1,5 @@
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QLineEdit, QHBoxLayout, QPushButton
 
-from src.command.DeviceStatus import DeviceStatus
 from src.command.CommandScheduler import CommandScheduler
 from src.command.CommandController import Command, CommandController, CommandDictionary
 from src.ErrorMessage import Error
