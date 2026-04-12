@@ -223,8 +223,10 @@ class MainWindow(QMainWindow):
     def run_script(self):
         if not self.paused:
             CommandScheduler.run_commands(0.0)
+            self.graph.start_script(0.0)
         else:
             CommandScheduler.resume()
+            self.graph.resume_script()
 
         self.disable_button(self.run_script_button)
 
@@ -234,6 +236,8 @@ class MainWindow(QMainWindow):
 
     def pause_script(self):
         CommandScheduler.pause()
+        self.graph.pause_script()
+
         self.paused = True
 
         self.disable_button(self.pause_script_button)
@@ -244,6 +248,8 @@ class MainWindow(QMainWindow):
 
     def stop_script(self):
         CommandScheduler.stop_running()
+        self.graph.stop_script()
+
         self.paused = False
 
         self.disable_button(self.stop_script_button)

@@ -70,6 +70,9 @@ class GraphWidget(QWidget):
 
         self.realtime_interval = realtime_interval
 
+        self.pause_time = 0.0
+        self.pause_duration = 0.0
+
     def set_graph(self, command_type: tuple[str, int, bool], realtime: bool):
         self.update_plot()
         self.graph_layout.removeWidget(self.cur_view.plot)
@@ -111,15 +114,31 @@ class GraphWidget(QWidget):
                 num = status_frame.status[self.command_translation_table[view.command_type]]
                 num = extract_number(num)
 
-                view.x_data2.append(time.monotonic())
+                view.x_data2.append((time.monotonic() - self.script_start) - self.pause_duration)
                 view.y_data2.append(num)
+                view.data_line2.setData(view.x_data2, view.y_data2)
 
     def start_script(self, start_time: float):
         self.script_running = True
         self.script_start = time.monotonic() + start_time
 
     def stop_script(self):
-        self.script_running = False 
+        self.script_running = False
+        self.pause_duration = 0.0
+        self.script_start = 0.0
+
+        for view in self.target_views.values():
+            view.x_data2 = []
+            view.y_data2 = []
+            view.data_line2.setData(view.x_data2, view.y_data2)
+
+    def pause_script(self):
+        self.pause_time = time.monotonic()
+        self.script_running = False
+
+    def resume_script(self):
+        self.script_running = True
+        self.pause_duration += time.monotonic() - self.pause_time
 
     def start_rt(self):
         self.timer = QTimer()
