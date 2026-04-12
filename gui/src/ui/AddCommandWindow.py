@@ -5,7 +5,7 @@ from src.command.CommandScheduler import CommandScheduler
 from src.command.CommandController import CommandDictionary
 from src.ErrorMessage import Error
 
-HEIGHT = 225
+HEIGHT = 275
 WIDTH = 400
 
 class AddCommandWindow(QMainWindow):
@@ -52,6 +52,11 @@ class AddCommandWindow(QMainWindow):
         self.should_step = self.step.isChecked()
         self.step.stateChanged.connect(self.set_step)
 
+
+        self.step_rate_field = QLineEdit()
+        self.step_rate_field.setValidator(QDoubleValidator())
+        self.step_rate_field.setPlaceholderText("Step rate in steps per second")
+
         arg_layout.addWidget(self.arg_field)
         arg_layout.addWidget(self.step)
 
@@ -59,6 +64,7 @@ class AddCommandWindow(QMainWindow):
         fields_layout.addWidget(self.command_field)
         fields_layout.addWidget(self.time_field)
         fields_layout.addWidget(arg_container)
+        fields_layout.addWidget(self.step_rate_field)
 
         self.set_hidden()
 
@@ -93,8 +99,10 @@ class AddCommandWindow(QMainWindow):
 
         if CommandDictionary[self.command_field.currentText()][1] < 2:
             self.step.hide()
+            self.step_rate_field.setDisabled(True)
         else:
             self.step.show()
+            self.step_rate_field.setEnabled(True)
 
     def clear_fields(self):
         self.step.setEnabled(True)
@@ -110,8 +118,14 @@ class AddCommandWindow(QMainWindow):
             Error("Command must have a time.").call()
             return
 
+        if self.step_rate_field.text() == "" and self.step.isChecked():
+            Error("Step rate field cannot be empty.").call()
+            return
+
         try:
-            CommandScheduler.add_command(float(self.time_field.text()), CommandDictionary[self.command_field.currentText()], self.arg_field.text(), self.step.isChecked(), self.name_field.text())
+            CommandScheduler.add_command(float(self.time_field.text()), CommandDictionary[self.command_field.currentText()], 
+                                         self.arg_field.text(), self.step.isChecked(), self.name_field.text(), 
+                                         None if self.step_rate_field.text() == "" else float(self.step_rate_field.text()))
         except Error as err:
             err.call()
             return
