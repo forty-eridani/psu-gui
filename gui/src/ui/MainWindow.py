@@ -10,6 +10,7 @@ from src.ui.CommandScheduleWindow import CommandScheduleWindow
 from src.ui.ConnectPromptWindow import ConnectPromptWindow
 from src.ui.ColorPalette import ColorPalette
 from src.ui.OutputWindow import OutputWindow
+from src.ui.RealtimeSettingsWindow import RealtimeSettingsWindow
 
 HEIGHT = 800
 WIDTH = 800
@@ -84,6 +85,7 @@ class MainWindow(QMainWindow):
         realtime_submenu = view_menu.addMenu("Real Time Device Telemetry")
         command_schedule = view_menu.addAction("Script Command Schedule")
         view_menu.addAction("Output Console").triggered.connect(self.show_output_window)
+        view_menu.addAction("Real Time Graph Settings").triggered.connect(self.show_rt_params_window)
         command_schedule.triggered.connect(self.show_command_schedule)
         self.command_schedule_window = None
 
@@ -146,6 +148,7 @@ class MainWindow(QMainWindow):
         self.remove_window = None
         self.connection_prompt = None
         self.output_window = OutputWindow()
+        self.rt_params_window = None
 
         CommandController.set_on_command(self.output_window.add_cmd)
 
@@ -212,6 +215,12 @@ class MainWindow(QMainWindow):
             self.output_window = OutputWindow()
 
         self.output_window.show()
+
+    def show_rt_params_window(self):
+        if self.rt_params_window == None:
+            self.rt_params_window = RealtimeSettingsWindow(self.graph.set_polling_rate, self.graph.set_lookback_time)
+
+        self.rt_params_window.show()
 
     def on_connection(self):
         self.connected_label.setText("Connected •")

@@ -45,6 +45,7 @@ class GraphWidget(QWidget):
 
         self.realtime_length = realtime_length
         self.rt_start_time = time.monotonic()
+        self.timer = None
 
         self.graph_layout = QGridLayout(self)
 
@@ -147,4 +148,14 @@ class GraphWidget(QWidget):
         self.timer.start()
 
     def stop_rt(self):
-        self.timer.stop()
+        if self.timer != None:
+            self.timer.stop()
+
+    def set_polling_rate(self, rate: float):
+        self.realtime_interval = int((1.0 / rate) * 1000)
+
+        if self.timer != None:
+            self.timer.setInterval(self.realtime_interval)
+
+    def set_lookback_time(self, time: float):
+        self.realtime_length = int(time / (self.realtime_interval / 1000.0))
