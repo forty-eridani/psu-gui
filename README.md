@@ -41,7 +41,7 @@ In order to control the power supply over time, you can use scheduled commands. 
 - `Argument for Command`: This may be grayed out depending on what was selected in the dropdown menu. Some commands don't take arguments while some do. If you chose a command that takes an argument and don't provide one, you will be greeted with an error
 - `Time (s)` The time in seconds after starting the script that the command will run in seconds
 - `Step`: A checkbox that may not appear if the command doesn't take arguments or doesn't take arguments that can be interpolated. Something like `ADDR` has no reason to be interpolated, so the option isn't provided.
-- `Step rate in steps per second`: If you chose for the argument to be interpolated, this field sets the step rate leading to that command. Say you set the voltage to `0v` at 0 seconds and `5v` at 10 seconds and set the step rate to 1 step per second. This means that the program will generate 10 intermediate steps between those commands 
+- `Step rate in steps per second`: If you chose for the argument to be interpolated, this field sets the step rate leading to that command. Say you set the voltage to `0v` at 0 seconds and `5v` at 10 seconds and set the step rate to 1 step per second. This means that the program will generate 8 intermediate steps between those commands 
 
 ### Interpolation
 
