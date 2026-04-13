@@ -30,6 +30,7 @@ class CurrentView:
         self.plot.setLabel("left", y_label)
         self.plot.setLabel("bottom", "Time (s)")
         self.plot.setTitle(y_label + " Over Time (s)")
+        self.plot.showGrid(x=True, y=True)
 
         if not realtime:
             self.x_data2 = []
@@ -54,7 +55,7 @@ class GraphWidget(QWidget):
         }
 
         self.realtime_views = {
-            plot[1]: CurrentView(pg.PlotWidget(), "Realtime " + plot[0], True, plot[1]) for plot in true_plots.items()
+            plot[1]: CurrentView(pg.PlotWidget(), "Real Time " + plot[0], True, plot[1]) for plot in true_plots.items()
         }
 
         # Translating between keys of the commanded plot to commands for retriving the information to verify whether the parameter is truly following the target
