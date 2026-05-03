@@ -27,7 +27,7 @@ class CommandedOutput:
         return CommandController.run_command(self.command, self.arg if self.arg != None else "")
 
 class CommandSchedulerClass:
-    def __init__(self, step_rate: float):
+    def __init__(self):
         self.commands: list[CommandedOutput] = []
         self.is_running = False
         self.threads: list[threading.Timer] = []
@@ -35,6 +35,9 @@ class CommandSchedulerClass:
         self.start_time = -1
         self.pause_time = 0.0
         self.pause_duration = 0.0
+
+        # The function for when a script stops executing
+        self.on_end = None
 
     # Step rate in steps per second
     def add_command(self, seconds: float, command: tuple[str, int, bool], arg: str | None, should_step: bool, name: str, step_rate: float | None) -> None:
@@ -223,6 +226,9 @@ class CommandSchedulerClass:
 
         self.is_running = True
 
+    def set_finish(self, on_end):
+        self.on_end = on_end
+
     def stop_running(self, on_pause: bool = False) -> None:
         for thread in self.threads:
             thread.cancel()
@@ -235,6 +241,9 @@ class CommandSchedulerClass:
             self.start_time = -1
             self.pause_time = 0.0
             self.pause_duration = 0.0
+
+            if self.on_end != None:
+                self.on_end()
 
     def pause(self):
         assert(self.is_running)
@@ -346,4 +355,4 @@ class CommandSchedulerClass:
         return -1
 
 # One step per second is default step rate
-CommandScheduler = CommandSchedulerClass(1)
+CommandScheduler = CommandSchedulerClass()

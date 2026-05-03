@@ -151,6 +151,7 @@ class MainWindow(QMainWindow):
         self.rt_params_window = None
 
         CommandController.set_on_command(self.output_window.add_cmd)
+        CommandScheduler.set_finish(self.finish_script)
 
     def show_add_window(self):
         if self.add_window == None:
@@ -268,6 +269,18 @@ class MainWindow(QMainWindow):
 
     def stop_script(self):
         CommandScheduler.stop_running()
+        self.graph.stop_script()
+
+        self.paused = False
+
+        self.disable_button(self.stop_script_button)
+
+        self.disable_button(self.pause_script_button)
+
+        self.enable_button(self.run_script_button)
+
+    # Called when script execution finishes
+    def finish_script(self):
         self.graph.stop_script()
 
         self.paused = False
